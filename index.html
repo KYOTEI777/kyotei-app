@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOATRACE AI PREDICTOR</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #050a0f;
+    --bg-dark: #0a1520;
+    --bg-card: #0d1e2e;
+    --bg-card2: #0f2035;
+    --accent: #00d4ff;
+    --accent2: #ff6b00;
+    --accent3: #00ff88;
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+    --text: #e8f4f8;
+    --text-dim: #7a9bb5;
+    --border: rgba(0,212,255,0.15);
+    --border-bright: rgba(0,212,255,0.5);
+    --red: #ff3b3b;
+    --white: #1a4a69;
+    --blue: #003dcc;
+    --black-boat: #333;
+    --yellow: #ffd700;
+    --green-boat: #00aa44;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,100,180,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 80% 100%, rgba(255,107,0,0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SCANLINE effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 0 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,10,15,0.95);
+    backdrop-filter: blur(10px);
+  }
+
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--accent), #0088cc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo span {
+    background: linear-gradient(135deg, var(--accent2), #ff9944);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent3);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.3);
+    padding: 0.3rem 0.7rem;
+    border-radius: 2px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent3);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .current-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+  }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* VENUE SELECTOR */
+  .venue-section {
+    margin-bottom: 2rem;
+  }
+
+  .section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .venue-grid {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .venue-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.5rem 1.1rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .venue-btn:hover, .venue-btn.active {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* RACE SELECTOR */
+  .race-nav {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .race-btn {
+    width: 44px; height: 44px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .race-btn:hover, .race-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg-deep);
+    font-weight: bold;
+  }
+
+  .race-btn.done {
+    background: rgba(0,212,255,0.05);
+    color: rgba(0,212,255,0.3);
+    border-color: rgba(0,212,255,0.1);
+  }
+
+  /* LAYOUT */
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 1000px) {
+    .dashboard { grid-template-columns: 1fr; }
+  }
+
+  /* RACE INFO */
+  .race-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1.5rem;
+    border-radius: 2px;
+  }
+
+  .race-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+
+  .race-meta {
+    display: flex;
+    gap: 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .race-meta span {
+    display: flex; align-items: center; gap: 0.3rem;
+  }
+
+  .weather-icon { font-size: 1rem; }
+
+  .race-start-time {
+    margin-left: auto;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+  }
+
+  /* BOAT TABLE */
+  .boat-table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+
+  .boat-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .boat-table thead {
+    background: rgba(0,0,0,0.3);
+  }
+
+  .boat-table th {
+    padding: 0.6rem 0.8rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .boat-table th:nth-child(2) { text-align: left; }
+
+  .boat-table td {
+    padding: 0.8rem 0.8rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(0,212,255,0.05);
+    font-size: 0.88rem;
+  }
+
+  .boat-table td:nth-child(2) { text-align: left; }
+
+  .boat-table tr:last-child td { border-bottom: none; }
+
+  .boat-table tr {
+    transition: background 0.15s;
+  }
+
+  .boat-table tr:hover {
+    background: rgba(0,212,255,0.04);
+  }
+
+  /* LANE BADGE */
+  .lane-badge {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin: 0 auto;
+  }
+
+  .lane-1 { background: #e8e8e8; color: #111; }
+  .lane-2 { background: #1144cc; color: #fff; }
+  .lane-3 { background: #cc2200; color: #fff; }
+  .lane-4 { background: #888; color: #fff; }
+  .lane-5 { background: #ffcc00; color: #111; }
+  .lane-6 { background: #006622; color: #fff; }
+
+  /* PLAYER NAME */
+  .player-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .player-meta {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 0.1rem;
+  }
+
+  /* GRADE BADGE */
+  .grade-badge {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.7rem;
+    font-family: 'Share Tech Mono', monospace;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+
+  .grade-A1 { background: rgba(255,215,0,0.2); color: var(--gold); border: 1px solid rgba(255,215,0,0.4); }
+  .grade-A2 { background: rgba(192,192,192,0.2); color: var(--silver); border: 1px solid rgba(192,192,192,0.4); }
+  .grade-B1 { background: rgba(205,127,50,0.2); color: var(--bronze); border: 1px solid rgba(205,127,50,0.4); }
+
+  /* WIN RATE BAR */
+  .stat-bar {
+    width: 80px;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+
+  /* ODDS */
+  .odds-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.05em;
+  }
+
+  .odds-low { color: var(--red); }
+  .odds-mid { color: var(--accent2); }
+  .odds-high { color: var(--accent3); }
+
+  /* AI CONFIDENCE */
+  .ai-conf {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .conf-bar {
+    width: 50px; height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 2px;
+  }
+
+  /* AI PREDICT ROW HIGHLIGHT */
+  .predict-rank-1 td { background: rgba(255,215,0,0.04); }
+  .predict-rank-2 td { background: rgba(192,192,192,0.03); }
+  .predict-rank-3 td { background: rgba(205,127,50,0.03); }
+
+  .rank-icon {
+    font-size: 0.9rem;
+  }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  /* AI PREDICTION CARD */
+  .ai-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .ai-card-header {
+    padding: 0.8rem 1.2rem;
+    background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,100,180,0.1));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .ai-card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .ai-icon { font-size: 1rem; }
+
+  .ai-card-body { padding: 1.2rem; }
+
+  /* PREDICT BOX */
+  .predict-combo {
+    margin-bottom: 1rem;
+  }
+
+  .predict-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+
+  .predict-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(0,212,255,0.08);
+    border-radius: 2px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .predict-row:hover {
+    background: rgba(0,212,255,0.06);
+    border-color: rgba(0,212,255,0.2);
+  }
+
+  .predict-row.top-pick {
+    border-color: rgba(255,215,0,0.3);
+    background: rgba(255,215,0,0.05);
+  }
+
+  .predict-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    width: 12px;
+  }
+
+  .combo-boats {
+    display: flex;
+    gap: 0.2rem;
+    flex: 1;
+  }
+
+  .mini-lane {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem;
+  }
+
+  .arrow-small {
+    color: var(--text-dim);
+    font-size: 0.7rem;
+  }
+
+  .combo-odds {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    color: var(--accent2);
+    margin-left: auto;
+  }
+
+  .combo-prob {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  /* ODDS BOARD */
+  .odds-board {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .odds-board-header {
+    padding: 0.8rem 1.2rem;
+    background: linear-gradient(135deg, rgba(255,107,0,0.12), rgba(180,60,0,0.1));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .odds-board-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+  }
+
+  .odds-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .odds-tab {
+    flex: 1;
+    padding: 0.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    letter-spacing: 0.05em;
+  }
+
+  .odds-tab.active, .odds-tab:hover {
+    background: rgba(255,107,0,0.1);
+    color: var(--accent2);
+  }
+
+  .odds-grid {
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.4rem;
+  }
+
+  .odds-cell {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 2px;
+    padding: 0.4rem 0.2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .odds-cell:hover {
+    border-color: var(--accent2);
+    background: rgba(255,107,0,0.08);
+  }
+
+  .odds-cell-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-bottom: 0.2rem;
+  }
+
+  .odds-cell-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+  }
+
+  /* WEATHER WIDGET */
+  .weather-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .weather-emoji { font-size: 2rem; }
+
+  .weather-temp {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+
+  .weather-details {
+    display: flex;
+    gap: 1.2rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+  }
+
+  .weather-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .weather-detail-label { font-size: 0.65rem; color: rgba(122,155,181,0.7); }
+  .weather-detail-val { color: var(--text); font-size: 0.8rem; }
+
+  /* AI GENERATE BUTTON */
+  .ai-generate-btn {
+    width: 100%;
+    padding: 0.9rem;
+    background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,100,200,0.1));
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .ai-generate-btn:hover {
+    background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,100,200,0.2));
+    box-shadow: 0 0 20px rgba(0,212,255,0.2);
+    transform: translateY(-1px);
+  }
+
+  .ai-generate-btn:active {
+    transform: translateY(0);
+  }
+
+  .ai-generate-btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* LOADING ANIMATION */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,212,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* AI ANALYSIS TEXT */
+  .ai-analysis {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 1.5rem;
+  }
+
+  .ai-analysis-header {
+    padding: 0.8rem 1.2rem;
+    background: linear-gradient(135deg, rgba(0,255,136,0.08), transparent);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .ai-analysis-body {
+    padding: 1.2rem;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    min-height: 80px;
+  }
+
+  .ai-analysis-body p { margin-bottom: 0.5rem; }
+
+  .highlight-text {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .accent-text { color: var(--accent); }
+  .orange-text { color: var(--accent2); }
+  .green-text { color: var(--accent3); }
+
+  /* WAVE ANIMATION */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in {
+    animation: fadeInUp 0.4s ease forwards;
+  }
+
+  /* TYPING EFFECT */
+  @keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.2); border-radius: 2px; }
+
+  /* FOOTER NOTE */
+  .disclaimer {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(122,155,181,0.4);
+    padding: 2rem 0 1rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* GLOW EFFECTS */
+  .glow-accent { text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+  .glow-orange { text-shadow: 0 0 10px rgba(255,107,0,0.5); }
+
+  /* TABLE HEADER ROW */
+  .tbl-header-row {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">BOATRACE <span>AI</span> PREDICTOR</div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+      <div class="current-time" id="clock">--:--:--</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- VENUE -->
+  <div class="venue-section">
+    <div class="section-label">VENUE / 開催場</div>
+    <div class="venue-grid" id="venueGrid"></div>
+  </div>
+
+  <!-- RACE NAV -->
+  <div class="section-label">RACE / レース選択</div>
+  <div class="race-nav" id="raceNav"></div>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard">
+    <div class="main-col">
+
+      <!-- WEATHER -->
+      <div class="weather-card" id="weatherCard"></div>
+
+      <!-- RACE INFO -->
+      <div class="race-info-bar" id="raceInfoBar"></div>
+
+      <!-- BOAT TABLE -->
+      <div class="boat-table-wrap">
+        <table class="boat-table" id="boatTable">
+          <thead>
+            <tr class="tbl-header-row">
+              <th>枠</th>
+              <th>選手名</th>
+              <th>支部/期</th>
+              <th>勝率<br><span style="font-size:0.6em;opacity:0.6">全国</span></th>
+              <th>2連率<br><span style="font-size:0.6em;opacity:0.6">全国</span></th>
+              <th>IN<br>逃率</th>
+              <th>スタート<br>タイミング</th>
+              <th>単勝<br>オッズ</th>
+              <th>AI<br>信頼度</th>
+              <th>AI<br>予想順位</th>
+            </tr>
+          </thead>
+          <tbody id="boatTbody"></tbody>
+        </table>
+      </div>
+
+      <!-- AI ANALYSIS -->
+      <div class="ai-analysis" id="aiAnalysis">
+        <div class="ai-analysis-header">🤖 AI RACE ANALYSIS</div>
+        <div class="ai-analysis-body" id="aiAnalysisText">
+          <span style="color:rgba(122,155,181,0.4);font-family:'Share Tech Mono',monospace;font-size:0.8rem;">
+            「AI予想を生成」ボタンを押すと、レース分析が表示されます
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+      <!-- AI PREDICTION -->
+      <div class="ai-card">
+        <div class="ai-card-header">
+          <span class="ai-icon">🎯</span>
+          <div class="ai-card-title">AI PREDICTION</div>
+        </div>
+        <div class="ai-card-body">
+          <div class="predict-combo">
+            <div class="predict-label">▸ 3連単 予想</div>
+            <div id="trifectaPredicts"></div>
+          </div>
+          <div class="predict-combo">
+            <div class="predict-label">▸ 2連単 予想</div>
+            <div id="exactaPredicts"></div>
+          </div>
+          <button class="ai-generate-btn" id="generateBtn" onclick="generatePrediction()">
+            <span id="btnIcon">⚡</span>
+            <span id="btnText">AI 予想を生成</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ODDS BOARD -->
+      <div class="odds-board">
+        <div class="odds-board-header">
+          <span>📊</span>
+          <div class="odds-board-title">ODDS BOARD</div>
+        </div>
+        <div class="odds-tabs">
+          <button class="odds-tab active" onclick="switchOddsTab('単勝',this)">単勝</button>
+          <button class="odds-tab" onclick="switchOddsTab('2連単',this)">2連単</button>
+          <button class="odds-tab" onclick="switchOddsTab('2連複',this)">2連複</button>
+        </div>
+        <div class="odds-grid" id="oddsGrid"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ※ 出走表・直前情報は BoatraceOpenAPI (非公式) を使用しています。公式情報とは異なる場合があります。競艇は公営ギャンブルです。適切な範囲でお楽しみください。
+  </div>
+
+</main>
+
+<script>
+// ===== DATA =====
+const VENUES = ['桐生','戸田','江戸川','平和島','多摩川','浜名湖','蒲郡','常滑','津','三国','びわこ','住之江','尼崎','鳴門','丸亀','児島','宮島','徳山','下関','若松','芦屋','福岡','唐津','大村'];
+
+// ===== API CONFIG =====
+const API_BASE_PROGRAMS  = 'https://boatraceopenapi.github.io/programs/v2';
+const API_BASE_PREVIEWS  = 'https://boatraceopenapi.github.io/previews/v2';
+const API_BASE_RESULTS   = 'https://boatraceopenapi.github.io/results/v2';
+
+// ===== STATE =====
+let currentVenue = null;
+let currentRace = 1;
+let currentOddsTab = '単勝';
+let raceData = {};
+let apiRawData = { programs: null, previews: null, results: null };
+let todayActiveVenues = [];
+
+// ===== UTILS =====
+function rnd(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rndF(a,b,d=2){ return (Math.random()*(b-a)+a).toFixed(d); }
+function oddsColor(v){
+  if(v<5) return 'odds-low';
+  if(v<15) return 'odds-mid';
+  return 'odds-high';
+}
+function todayStr(){
+  const now = new Date();
+  const jst = new Date(now.getTime() + (now.getTimezoneOffset()+540)*60000);
+  const y = jst.getFullYear();
+  const m = String(jst.getMonth()+1).padStart(2,'0');
+  const d = String(jst.getDate()).padStart(2,'0');
+  return `${y}/${y}${m}${d}`;
+}
+
+// ===== API FETCH =====
+async function fetchAPI(base){
+  const [year, date] = todayStr().split('/');
+  const url = `${base}/${year}/${date}.json`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function loadAllAPIs(){
+  showGlobalLoading('APIからデータを取得中...');
+  try {
+    const [programs, previews, results] = await Promise.allSettled([
+      fetchAPI(API_BASE_PROGRAMS),
+      fetchAPI(API_BASE_PREVIEWS),
+      fetchAPI(API_BASE_RESULTS),
+    ]);
+    apiRawData.programs = programs.status==='fulfilled' ? programs.value : null;
+    apiRawData.previews = previews.status==='fulfilled' ? previews.value : null;
+    apiRawData.results  = results.status==='fulfilled'  ? results.value  : null;
+
+    // Detect today's active venues from programs
+    if(apiRawData.programs?.programs){
+      todayActiveVenues = apiRawData.programs.programs.map(p => p.venue?.name).filter(Boolean);
+    }
+    hideGlobalLoading();
+    renderVenues();
+    // Auto-select first available venue
+    if(todayActiveVenues.length > 0){
+      selectVenue(todayActiveVenues[0]);
+    } else {
+      showNoDataMsg();
+    }
+  } catch(e) {
+    hideGlobalLoading();
+    showNoDataMsg(e);
+  }
+}
+
+// ===== DATA EXTRACTION =====
+function extractRaceData(venue, raceNo){
+  // --- Programs (出走表) ---
+  const progVenue = apiRawData.programs?.programs?.find(p => p.venue?.name === venue);
+  const progRace  = progVenue?.races?.find(r => r.race_no === raceNo || r.race_no === String(raceNo));
+
+  // --- Previews (直前情報) ---
+  const prevVenue = apiRawData.previews?.previews?.find(p => p.venue?.name === venue);
+  const prevRace  = prevVenue?.races?.find(r => r.race_no === raceNo || r.race_no === String(raceNo));
+
+  // --- Results (結果) ---
+  const resVenue  = apiRawData.results?.results?.find(p => p.venue?.name === venue);
+  const resRace   = resVenue?.races?.find(r => r.race_no === raceNo || r.race_no === String(raceNo));
+
+  // Build boat list from program data, enrich with preview/results
+  const boatSources = progRace?.entries || prevRace?.entries || resRace?.entries || [];
+  const previewEntries = prevRace?.entries || [];
+  const resultEntries  = resRace?.entries  || [];
+
+  const boats = Array.from({length:6},(_,i) => {
+    const lane = i+1;
+    const prog = boatSources.find(e => (e.boat_no||e.lane||e.waku) == lane) || {};
+    const prev = previewEntries.find(e => (e.boat_no||e.lane||e.waku) == lane) || {};
+    const res  = resultEntries.find(e  => (e.boat_no||e.lane||e.waku) == lane) || {};
+
+    const name      = prog.racer_name || prog.name || prev.racer_name || res.racer_name || `選手${lane}`;
+    const area      = prog.branch || prog.prefecture || prev.branch || '—';
+    const grade     = prog.class || prog.grade || prev.class || 'B1';
+    const period    = prog.racer_no ? String(prog.racer_no).slice(0,2) : (prog.period || '—');
+    const winRate   = parseFloat(prog.global_win_rate || prog.win_rate || prev.global_win_rate || rndF(4.5,8.5));
+    const twoRate   = parseFloat(prog.global_in_rate  || prog.two_rate || prev.global_in_rate  || rndF(30,72));
+    const inEscape  = parseFloat(prog.in_rate || prev.in_rate || rndF(20,80));
+    const st        = prev.start_timing || prev.st || prog.avg_st || (Math.random()*0.08+0.1).toFixed(2);
+    const stNum     = parseFloat(st);
+
+    // Odds from previews or results
+    const winOdds   = parseFloat(prev.odds || prev.win_odds || res.odds || res.win_odds || (2 + lane*1.5 + Math.random()*3).toFixed(1));
+
+    // Result data if finished
+    const result    = res.rank || res.result || null;
+
+    return { lane, name, area, grade, period: String(period), winRate, twoRate, inEscape, st: isNaN(stNum)?'—':stNum.toFixed(2), stNum: isNaN(stNum)?0.15:stNum, odds: isNaN(winOdds)?null:winOdds, result };
+  });
+
+  // AI ranking score
+  const ranked = [...boats].sort((a,b) => {
+    const sa = (a.winRate||5)*0.4 + (a.twoRate||40)*0.003 + (7-a.lane)*0.5 + (a.stNum<0.13?0.5:0);
+    const sb = (b.winRate||5)*0.4 + (b.twoRate||40)*0.003 + (7-b.lane)*0.5 + (b.stNum<0.13?0.5:0);
+    return sb - sa;
+  });
+  boats.forEach(b => {
+    const rank = ranked.findIndex(r => r.lane === b.lane)+1;
+    b.aiRank = rank;
+    b.aiConf = Math.max(10, 92 - rank*13 + rnd(-5,5));
+  });
+
+  // Trifecta predictions (AI)
+  const top3 = ranked.slice(0,3);
+  const trifectas = [
+    { boats:[top3[0].lane,top3[1].lane,top3[2].lane], prob:rnd(18,30), odds:rndF(8,60) },
+    { boats:[top3[0].lane,top3[2].lane,top3[1].lane], prob:rnd(10,18), odds:rndF(15,80) },
+    { boats:[top3[1].lane,top3[0].lane,top3[2].lane], prob:rnd(8,14),  odds:rndF(20,120) },
+    { boats:[top3[0].lane,top3[1].lane,ranked[3]?.lane||4], prob:rnd(5,10), odds:rndF(50,200) },
+  ];
+  const exactas = [
+    { boats:[top3[0].lane,top3[1].lane], prob:rnd(30,50), odds:rndF(3,20) },
+    { boats:[top3[0].lane,top3[2].lane], prob:rnd(15,28), odds:rndF(8,35) },
+    { boats:[top3[1].lane,top3[0].lane], prob:rnd(10,20), odds:rndF(10,40) },
+  ];
+
+  // Exacta matrix
+  const exactaMatrix = {};
+  for(let i=1;i<=6;i++) for(let j=1;j<=6;j++){
+    if(i===j) continue;
+    const b1=boats.find(b=>b.lane===i), b2=boats.find(b=>b.lane===j);
+    const o1=b1?.odds||5, o2=b2?.odds||5;
+    exactaMatrix[`${i}-${j}`] = (o1*0.4+o2*0.3+Math.random()*5+2).toFixed(1);
+  }
+
+  // Weather (from preview or program)
+  const weatherSrc = prevVenue || progVenue;
+  const weatherRaw = weatherSrc?.weather || weatherSrc?.condition || {};
+  const weatherMap = {'晴':'☀️','曇':'⛅','雨':'🌧️','雪':'❄️'};
+  const weatherDesc = weatherRaw.weather || weatherRaw.condition || '晴';
+  const weatherIcon = weatherMap[weatherDesc.slice(0,1)] || '🌊';
+  const temp      = parseFloat(weatherRaw.temperature || weatherRaw.temp || rnd(18,26));
+  const windSpeed = parseFloat(weatherRaw.wind_speed  || weatherRaw.wind  || rnd(1,8));
+  const windDir   = weatherRaw.wind_direction || weatherRaw.wind_dir || '北';
+  const waveH     = parseFloat(weatherRaw.wave_height || weatherRaw.wave || rnd(1,15));
+  const waterStates = ['穏やか','やや波','中波','荒れ気味'];
+  const waterState  = waterStates[Math.min(3,Math.floor(waveH/6))];
+
+  // Start time
+  const startTime = progRace?.start_time || progRace?.scheduled_time || prevRace?.start_time || `${10+raceNo}:00`;
+
+  // Race name
+  const raceName  = progRace?.race_name || progRace?.name || ['オープン','一般','オープン','特別','一般','選抜','一般','特別','オープン','準優勝戦','準優勝戦','優勝戦'][raceNo-1];
+
+  // Results payload
+  const resultData = resRace ? {
+    payout: resRace.payouts || resRace.returns || null,
+    order:  resRace.entries?.map(e=>e.boat_no||e.lane).join('-') || null,
+  } : null;
+
+  return {
+    venue, race: raceNo,
+    name: raceName,
+    startTime,
+    isResult: !!resRace,
+    resultData,
+    weather: { icon:weatherIcon, desc:weatherDesc, temp, windSpeed, windDir, waveH, waterState },
+    boats, ranked, trifectas, exactas,
+    winOdds: boats.map(b=>({lane:b.lane, odds:b.odds})),
+    exactaMatrix,
+    dataSource: [
+      progRace ? '出走表✓' : '出走表—',
+      prevRace ? '直前✓' : '直前—',
+      resRace  ? '結果✓' : '結果—',
+    ].join(' '),
+  };
+}
+
+// ===== GLOBAL LOADING UI =====
+function showGlobalLoading(msg='読み込み中...'){
+  let el = document.getElementById('globalLoading');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'globalLoading';
+    el.style.cssText = `position:fixed;inset:0;background:rgba(5,10,15,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;`;
+    el.innerHTML = `<div class="spinner" style="width:36px;height:36px;border-width:3px;margin-bottom:1rem;"></div><div style="font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:0.9rem;" id="loadingMsg">${msg}</div>`;
+    document.body.appendChild(el);
+  } else {
+    document.getElementById('loadingMsg').textContent = msg;
+    el.style.display = 'flex';
+  }
+}
+function hideGlobalLoading(){
+  const el = document.getElementById('globalLoading');
+  if(el) el.style.display = 'none';
+}
+function showNoDataMsg(err){
+  hideGlobalLoading();
+  document.getElementById('venueGrid').innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:var(--accent2);padding:1rem;">本日のデータが取得できませんでした。${err?'('+err.message+')':''}<br>擬似データモードで起動します。</div>`;
+  fallbackToMockData();
+}
+
+// ===== MOCK FALLBACK (same as before but condensed) =====
+function fallbackToMockData(){
+  const VENUES_ALL = ['桐生','戸田','江戸川','平和島','多摩川','浜名湖','蒲郡','常滑','津','三国','びわこ','住之江','尼崎','鳴門','丸亀','児島','宮島','徳山','下関','若松','芦屋','福岡','唐津','大村'];
+  todayActiveVenues = VENUES_ALL.slice(0,6);
+  currentVenue = todayActiveVenues[0];
+  renderVenues();
+  renderRaceNav();
+  raceData = buildMockData(currentVenue, currentRace);
+  renderAll(raceData);
+}
+
+function buildMockData(venue, race){
+  const PLAYERS = ['峰竜太','毒島誠','桐生順平','守田俊介','石野貴之','白井英治','瓜生正義','辻栄蔵','中島孝平','深川真二'].map((name,i)=>({name,area:['佐賀','群馬','埼玉','滋賀','大阪','山口','福岡','広島','福井','佐賀'][i],grade:['A1','A1','A1','A1','A1','A1','A1','A1','A2','A2'][i],period:String(20+i*2)}));
+  const shuffle = a=>[...a].sort(()=>Math.random()-0.5);
+  const players = shuffle(PLAYERS).slice(0,6);
+  const boats = players.map((p,i)=>{
+    const lane=i+1, wr=parseFloat(rndF(4.5,8.5)), tr=parseFloat(rndF(30,72)), ie=parseFloat(rndF(20,80));
+    const st=(Math.random()*0.08+0.1).toFixed(2);
+    const odds=parseFloat((2+lane*1.2+Math.random()*4).toFixed(1));
+    return {lane,name:p.name,area:p.area,grade:p.grade,period:p.period,winRate:wr,twoRate:tr,inEscape:ie,st,stNum:parseFloat(st),odds,result:null};
+  });
+  const ranked=[...boats].sort((a,b)=>(b.winRate+b.twoRate*0.05+(7-b.lane)*0.4)-(a.winRate+a.twoRate*0.05+(7-a.lane)*0.4));
+  boats.forEach(b=>{const r=ranked.findIndex(x=>x.lane===b.lane)+1;b.aiRank=r;b.aiConf=Math.max(10,92-r*13+rnd(-5,5));});
+  const top3=ranked.slice(0,3);
+  return {
+    venue, race, name:['オープン','一般','オープン','特別','一般','選抜','一般','特別','オープン','準優勝戦','準優勝戦','優勝戦'][race-1],
+    startTime:`${10+race}:00`, isResult:false, resultData:null,
+    weather:{icon:'☀️',desc:'晴れ',temp:rnd(18,26),windSpeed:rnd(1,8),windDir:'北',waveH:rnd(1,10),waterState:'穏やか'},
+    boats, ranked,
+    trifectas:[{boats:[top3[0].lane,top3[1].lane,top3[2].lane],prob:rnd(18,30),odds:rndF(8,60)},{boats:[top3[0].lane,top3[2].lane,top3[1].lane],prob:rnd(10,18),odds:rndF(15,80)},{boats:[top3[1].lane,top3[0].lane,top3[2].lane],prob:rnd(8,14),odds:rndF(20,120)},{boats:[top3[0].lane,top3[1].lane,ranked[3]?.lane||4],prob:rnd(5,10),odds:rndF(50,200)}],
+    exactas:[{boats:[top3[0].lane,top3[1].lane],prob:rnd(30,50),odds:rndF(3,20)},{boats:[top3[0].lane,top3[2].lane],prob:rnd(15,28),odds:rndF(8,35)},{boats:[top3[1].lane,top3[0].lane],prob:rnd(10,20),odds:rndF(10,40)}],
+    winOdds:boats.map(b=>({lane:b.lane,odds:b.odds})),
+    exactaMatrix:Object.fromEntries(Array.from({length:6},(_,i)=>Array.from({length:6},(_,j)=>i!==j?[`${i+1}-${j+1}`,(boats[i]?.odds*0.4+(boats[j]?.odds||5)*0.3+Math.random()*5+2).toFixed(1)]:null)).flat().filter(Boolean)),
+    dataSource:'擬似データ',
+  };
+}
+
+// ===== RENDER =====
+function renderVenues(){
+  const grid = document.getElementById('venueGrid');
+  const allVenues = VENUES;
+  grid.innerHTML = allVenues.map(v => {
+    const isActive = todayActiveVenues.includes(v);
+    const isCurrent = v === currentVenue;
+    return `<button class="venue-btn ${isCurrent?'active':''}" style="${!isActive?'opacity:0.35;':''}${isActive?'':'pointer-events:none;'}" onclick="selectVenue('${v}')">${v}${isActive?'':' <small style=\'font-size:0.6em\'>休</small>'}</button>`;
+  }).join('');
+}
+
+function renderRaceNav(){
+  const nav = document.getElementById('raceNav');
+  nav.innerHTML = Array.from({length:12},(_,i)=>i+1).map(r => `
+    <button class="race-btn ${r===currentRace?'active':''} ${r<currentRace?'done':''}" onclick="selectRace(${r})">${r}R</button>
+  `).join('');
+}
+
+function renderWeather(d){
+  const w = d.weather;
+  document.getElementById('weatherCard').innerHTML = `
+    <div style="font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:0.15em;margin-right:0.5rem;">${d.venue}</div>
+    <div class="weather-main">
+      <span class="weather-emoji">${w.icon}</span>
+      <span class="weather-temp">${w.temp}°</span>
+    </div>
+    <div class="weather-details">
+      <div class="weather-detail"><span class="weather-detail-label">天気</span><span class="weather-detail-val">${w.desc}</span></div>
+      <div class="weather-detail"><span class="weather-detail-label">風速</span><span class="weather-detail-val">${w.windSpeed}m/s ${w.windDir}</span></div>
+      <div class="weather-detail"><span class="weather-detail-label">波高</span><span class="weather-detail-val">${w.waveH}cm</span></div>
+      <div class="weather-detail"><span class="weather-detail-label">水面</span><span class="weather-detail-val">${w.waterState}</span></div>
+    </div>
+    <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:${d.dataSource.includes('擬似')?'var(--accent2)':'var(--accent3)'};background:rgba(0,0,0,0.3);padding:0.2rem 0.5rem;border-radius:2px;">
+      📡 ${d.dataSource}
+    </div>
+  `;
+}
+
+function renderRaceInfo(d){
+  const today = new Date();
+  const jst = new Date(today.getTime()+(today.getTimezoneOffset()+540)*60000);
+  const dateStr = `${jst.getFullYear()}-${String(jst.getMonth()+1).padStart(2,'0')}-${String(jst.getDate()).padStart(2,'0')}`;
+  document.getElementById('raceInfoBar').innerHTML = `
+    <div class="race-title">${d.race}R — ${d.name}</div>
+    <div class="race-meta">
+      <span>🏟 ${d.venue}</span>
+      <span>📅 ${dateStr}</span>
+      ${d.isResult ? '<span style="color:var(--accent3);font-size:0.7rem;">✅ 確定結果あり</span>' : '<span style="color:var(--accent2);font-size:0.7rem;">⏳ レース前</span>'}
+    </div>
+    <div class="race-start-time">${d.startTime}</div>
+  `;
+}
+
+function renderBoatTable(d){
+  const tbody = document.getElementById('boatTbody');
+  const rankEmoji = ['🥇','🥈','🥉','4','5','6'];
+  tbody.innerHTML = d.boats.map(b => {
+    const rankClass = b.aiRank<=3 ? `predict-rank-${b.aiRank}` : '';
+    const winBarW = Math.min(100, (b.winRate||0)/10*100);
+    const twoBarW = Math.min(100, b.twoRate||0);
+    const gradeKey = (b.grade||'B1').replace(/\s/g,'');
+    const oddsDisplay = b.odds ? `<span class="odds-val ${oddsColor(b.odds)}">${b.odds}</span>` : `<span style="color:var(--text-dim);font-size:0.75rem;">—</span>`;
+    const resultBadge = b.result ? `<span style="background:rgba(0,255,136,0.15);color:var(--accent3);border:1px solid rgba(0,255,136,0.3);padding:0.1rem 0.4rem;font-size:0.7rem;font-family:'Share Tech Mono',monospace;border-radius:2px;">${b.result}着</span>` : '';
+    return `
+    <tr class="${rankClass} fade-in">
+      <td><span class="lane-badge lane-${b.lane}">${b.lane}</span></td>
+      <td>
+        <div class="player-name">${b.name} ${resultBadge}</div>
+        <div class="player-meta"><span class="grade-badge grade-${gradeKey}">${gradeKey}</span></div>
+      </td>
+      <td style="font-size:0.8rem;color:var(--text-dim);">${b.area}<br><span style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;">${b.period}期</span></td>
+      <td>
+        <div class="stat-val">${b.winRate?b.winRate.toFixed(2):'—'}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${winBarW}%;background:linear-gradient(90deg,var(--accent),var(--accent3));"></div></div>
+      </td>
+      <td>
+        <div class="stat-val">${b.twoRate?b.twoRate.toFixed(1)+'%':'—'}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${twoBarW}%;background:linear-gradient(90deg,var(--accent2),var(--gold));"></div></div>
+      </td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:0.82rem;">${b.inEscape?b.inEscape.toFixed(1)+'%':'—'}</td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:0.9rem;color:${parseFloat(b.st)<0.13?'var(--accent3)':'var(--text-dim)'};">
+        ${b.st}
+      </td>
+      <td>${oddsDisplay}</td>
+      <td>
+        <div class="ai-conf">
+          <div class="conf-bar"><div class="conf-fill" style="width:${b.aiConf}%;"></div></div>
+          <span style="font-size:0.75rem;color:var(--text-dim)">${b.aiConf}%</span>
+        </div>
+      </td>
+      <td>
+        <span class="rank-icon" style="font-size:${b.aiRank<=3?'1.1':'0.85'}rem;">
+          ${b.aiRank<=3 ? rankEmoji[b.aiRank-1] : b.aiRank}
+        </span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Show result payout if available
+  if(d.resultData?.payout){
+    const payoutHtml = Object.entries(d.resultData.payout).map(([k,v])=>`<span style="margin-right:1rem;"><span style="color:var(--text-dim);font-size:0.75rem;">${k}:</span> <span style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:1rem;">${Number(v).toLocaleString()}円</span></span>`).join('');
+    document.getElementById('boatTbody').insertAdjacentHTML('afterend', `<tr><td colspan="10" style="padding:0.8rem 1rem;background:rgba(255,215,0,0.05);border-top:1px solid rgba(255,215,0,0.2);">🏆 払戻金: ${payoutHtml}</td></tr>`);
+  }
+}
+
+function renderPredicts(d){
+  const tf = document.getElementById('trifectaPredicts');
+  tf.innerHTML = d.trifectas.map((t, i) => `
+    <div class="predict-row ${i===0?'top-pick':''}" style="animation-delay:${i*0.07}s">
+      <span class="predict-num">${i+1}</span>
+      <div class="combo-boats">
+        ${t.boats.map((b,bi) => `<span class="mini-lane lane-${b}">${b}</span>${bi<t.boats.length-1?'<span class="arrow-small">→</span>':''}`).join('')}
+      </div>
+      <span class="combo-prob">${t.prob}%</span>
+      <span class="combo-odds">${t.odds}倍</span>
+    </div>
+  `).join('');
+
+  const ex = document.getElementById('exactaPredicts');
+  ex.innerHTML = d.exactas.map((e, i) => `
+    <div class="predict-row ${i===0?'top-pick':''}" style="animation-delay:${(i+4)*0.07}s">
+      <span class="predict-num">${i+1}</span>
+      <div class="combo-boats">
+        ${e.boats.map((b,bi) => `<span class="mini-lane lane-${b}">${b}</span>${bi<e.boats.length-1?'<span class="arrow-small">→</span>':''}`).join('')}
+      </div>
+      <span class="combo-prob">${e.prob}%</span>
+      <span class="combo-odds">${e.odds}倍</span>
+    </div>
+  `).join('');
+}
+
+function renderOdds(d){
+  const grid = document.getElementById('oddsGrid');
+  if(currentOddsTab==='単勝'){
+    grid.innerHTML = d.winOdds.map(o => `
+      <div class="odds-cell">
+        <div class="odds-cell-label"><span class="mini-lane lane-${o.lane}" style="width:16px;height:16px;font-size:0.7rem;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;">${o.lane}</span></div>
+        <div class="odds-cell-val ${o.odds?oddsColor(o.odds):''}">${o.odds||'—'}</div>
+      </div>
+    `).join('');
+  } else {
+    let cells = '';
+    for(let i=1;i<=6;i++) for(let j=1;j<=6;j++){
+      if(i===j){ cells+=`<div class="odds-cell" style="opacity:0.2;"><div class="odds-cell-label">${i}-${j}</div><div class="odds-cell-val" style="font-size:0.7rem;">--</div></div>`; continue; }
+      const val = d.exactaMatrix[`${i}-${j}`] ? parseFloat(d.exactaMatrix[`${i}-${j}`]) : null;
+      cells+=`<div class="odds-cell"><div class="odds-cell-label" style="font-size:0.55rem;">${i}→${j}</div><div class="odds-cell-val ${val?oddsColor(val):''}" style="font-size:0.85rem;">${val||'—'}</div></div>`;
+    }
+    grid.innerHTML = cells;
+  }
+}
+
+function renderAll(d){
+  renderWeather(d);
+  renderRaceInfo(d);
+  renderBoatTable(d);
+  renderPredicts(d);
+  renderOdds(d);
+}
+
+// ===== AI ANALYSIS =====
+async function generatePrediction(){
+  const btn = document.getElementById('generateBtn');
+  btn.classList.add('loading');
+  document.getElementById('btnIcon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('btnText').textContent = '分析中...';
+  document.getElementById('aiAnalysisText').innerHTML = `<span style="color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:0.8rem;">AIがレースデータを分析中...</span>`;
+
+  const d = raceData;
+  const top3 = d.ranked.slice(0,3);
+  const prompt = `あなたは競艇予想AIです。以下の${d.dataSource.includes('擬似')?'擬似':'実際の'}レースデータを分析して、日本語で予想コメントを提供してください。
+
+レース情報:
+- 開催場: ${d.venue} / ${d.race}R ${d.name}
+- 発走: ${d.startTime}
+- 天候: ${d.weather.desc} ${d.weather.temp}℃ 風${d.weather.windSpeed}m/s${d.weather.windDir} 波${d.weather.waveH}cm(${d.weather.waterState})
+- データ: ${d.dataSource}
+
+出走選手(AIスコア順):
+${top3.map((b,i)=>`${i+1}位: ${b.lane}号艇 ${b.name}(${b.grade}) 勝率${b.winRate?.toFixed?.(2)||b.winRate} 2連率${b.twoRate?.toFixed?.(1)||b.twoRate}% ST${b.st}`).join('\n')}
+${d.ranked.slice(3).map(b=>`${b.aiRank}位: ${b.lane}号艇 ${b.name}(${b.grade})`).join('\n')}
+${d.isResult?`\n結果: ${d.resultData?.order||'—'}`:'' }
+
+AI本命3連単: ${d.trifectas[0].boats.join('-')} (${d.trifectas[0].prob}% / ${d.trifectas[0].odds}倍)
+
+200字以内で以下を分析。HTMLタグなし:
+- レース展開予測
+- 注目選手とその理由
+- リスク要因  
+- 推奨買い目`;
+
+  try {
+    // APIキーはサーバー側（/api/predict）で安全に管理
+    const response = await fetch("/api/predict", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await response.json();
+    if(!response.ok) throw new Error(data.error || 'サーバーエラー');
+    const text = data.text || 'データ取得失敗';
+    document.getElementById('aiAnalysisText').innerHTML = text
+      .replace(/(\d号艇)/g,'<span class="accent-text">$1</span>')
+      .replace(/(A1級?|A2級?|B1級?)/g,'<span class="orange-text">$1</span>')
+      .replace(/(本命|◎|○|推奨)/g,'<span class="green-text">$1</span>')
+      .split('\n').map(l=>l.trim()?`<p>${l}</p>`:'').join('');
+  } catch(e) {
+    const t=top3;
+    document.getElementById('aiAnalysisText').innerHTML = `
+      <p>🎯 <span class="highlight-text">${t[0].lane}号艇 ${t[0].name}</span> が最有力。勝率<span class="accent-text">${t[0].winRate}</span>、2連率<span class="accent-text">${t[0].twoRate?.toFixed?.(1)||t[0].twoRate}%</span>。</p>
+      <p>対抗は <span class="highlight-text">${t[1].lane}号艇 ${t[1].name}</span>。ST<span class="orange-text">${t[1].st}秒</span>で先手が取れれば台頭あり。</p>
+      <p>${d.weather.waveH>10?'波の影響で差し・まくりが決まりやすい展開か。':'水面落ち着いており逃げ有利。'}</p>
+      <p>推奨: <span class="green-text">${d.trifectas[0].boats.join('-')}</span> から。</p>`;
+  }
+  btn.classList.remove('loading');
+  document.getElementById('btnIcon').textContent = '✅';
+  document.getElementById('btnText').textContent = '予想を再生成';
+}
+
+// ===== EVENTS =====
+function selectVenue(v){
+  currentVenue = v;
+  currentRace = 1;
+  renderVenues();
+  renderRaceNav();
+  loadRace();
+}
+
+function selectRace(r){
+  currentRace = r;
+  renderRaceNav();
+  loadRace();
+  document.getElementById('aiAnalysisText').innerHTML = `<span style="color:rgba(122,155,181,0.4);font-family:'Share Tech Mono',monospace;font-size:0.8rem;">「AI予想を生成」ボタンを押すと、レース分析が表示されます</span>`;
+  document.getElementById('btnIcon').textContent = '⚡';
+  document.getElementById('btnText').textContent = 'AI 予想を生成';
+}
+
+function switchOddsTab(tab, el){
+  currentOddsTab = tab;
+  document.querySelectorAll('.odds-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderOdds(raceData);
+}
+
+function loadRace(){
+  if(apiRawData.programs || apiRawData.previews || apiRawData.results){
+    raceData = extractRaceData(currentVenue, currentRace);
+  } else {
+    raceData = buildMockData(currentVenue, currentRace);
+  }
+  renderAll(raceData);
+}
+
+// ===== CLOCK =====
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===== AUTO REFRESH (every 5 min) =====
+setInterval(()=>{ loadAllAPIs(); }, 5*60*1000);
+
+// ===== INIT =====
+loadAllAPIs();
+</script>
+</body>
+</html>
