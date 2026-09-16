@@ -1,6 +1,10 @@
 {
+  "functions": {
+    "api/ehon.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/ehon", "destination": "/ehon.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

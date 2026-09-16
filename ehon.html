@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>えほんメーカー</title>
+<meta name="description" content="いくつかの質問に答えるだけで、子ども向けのオリジナル絵本ができあがります。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fff8ec;
+    --paper: #fffdf7;
+    --ink: #4a3b32;
+    --ink-soft: #8a7466;
+    --peach: #ffb385;
+    --coral: #ff8a65;
+    --coral-dark: #e8663f;
+    --mint: #9fdcc5;
+    --sky: #a9d8f5;
+    --lemon: #ffe08a;
+    --lilac: #cdbcf0;
+    --line: #f0dcc2;
+    --shadow: 0 10px 30px rgba(120, 80, 40, 0.12);
+    --radius: 22px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Kosugi Maru', 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(255, 179, 133, 0.18) 0 120px, transparent 121px),
+      radial-gradient(circle at 90% 20%, rgba(169, 216, 245, 0.25) 0 160px, transparent 161px),
+      radial-gradient(circle at 20% 90%, rgba(159, 220, 197, 0.22) 0 140px, transparent 141px),
+      radial-gradient(circle at 85% 85%, rgba(205, 188, 240, 0.22) 0 120px, transparent 121px);
+    background-attachment: fixed;
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+
+  header {
+    padding: 0.9rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-weight: 900; font-size: 1.35rem; letter-spacing: 0.04em;
+    color: var(--coral-dark); text-decoration: none; cursor: pointer;
+    background: none; border: none; font-family: inherit;
+  }
+  .brand span { font-size: 1.6rem; }
+  .header-actions { display: flex; gap: 0.4rem; }
+
+  main { max-width: 960px; margin: 0 auto; padding: 0 1rem 4rem; }
+
+  .screen { display: none; animation: fadeIn 0.35s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* buttons */
+  .btn {
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    border-radius: 999px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+    color: var(--ink);
+    background: #fff;
+    box-shadow: 0 4px 0 var(--line);
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-primary { background: var(--coral); color: #fff; box-shadow: 0 4px 0 var(--coral-dark); }
+  .btn-primary:active { box-shadow: 0 1px 0 var(--coral-dark); }
+  .btn-lg { font-size: 1.25rem; padding: 1rem 2.2rem; }
+  .btn-sm { font-size: 0.85rem; padding: 0.45rem 0.95rem; }
+  .btn-ghost { background: transparent; box-shadow: none; color: var(--ink-soft); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.6); }
+  .btn.is-on { background: var(--mint); box-shadow: 0 4px 0 #6fbfa0; }
+
+  /* card */
+  .card {
+    background: var(--paper);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.6rem;
+  }
+
+  /* HOME */
+  .hero {
+    text-align: center;
+    padding: 2.5rem 1rem 2rem;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .hero h1 em { font-style: normal; color: var(--coral-dark); }
+  .hero p { color: var(--ink-soft); font-size: 1.05rem; margin: 1rem auto 1.6rem; max-width: 34em; }
+  .hero-actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+  .hero-illust { max-width: 560px; margin: 0 auto 1rem; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .hero-illust svg { display: block; width: 100%; height: auto; }
+  .steps {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+    margin-top: 2rem;
+  }
+  .step { text-align: center; padding: 1.2rem 0.8rem; }
+  .step .ico { font-size: 2rem; }
+  .step h3 { font-size: 1rem; margin-top: 0.3rem; }
+  .step p { font-size: 0.85rem; color: var(--ink-soft); }
+  @media (max-width: 600px) { .steps { grid-template-columns: 1fr; } }
+
+  /* WIZARD */
+  .progress { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; }
+  .progress-bar { flex: 1; height: 12px; background: #fff; border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.08); }
+  .progress-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--peach), var(--coral)); border-radius: 99px; transition: width 0.3s; }
+  .progress-label { font-size: 0.85rem; color: var(--ink-soft); font-weight: 700; white-space: nowrap; }
+
+  .q-title { font-size: clamp(1.3rem, 4vw, 1.7rem); font-weight: 900; margin-bottom: 0.2rem; }
+  .q-help { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 1.2rem; }
+
+  .choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.7rem; }
+  .choice {
+    background: #fff;
+    border: 3px solid transparent;
+    border-radius: 18px;
+    padding: 0.9rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    font-family: inherit;
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 0.95rem;
+    box-shadow: 0 3px 0 var(--line);
+  }
+  .choice .ico { display: block; font-size: 2.1rem; line-height: 1.2; margin-bottom: 0.2rem; }
+  .choice small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 0.75rem; }
+  .choice:hover { transform: translateY(-3px); }
+  .choice.selected { border-color: var(--coral); background: #fff3ea; }
+
+  .text-input {
+    width: 100%;
+    font-family: inherit;
+    font-size: 1.3rem;
+    padding: 0.8rem 1.1rem;
+    border: 3px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .text-input:focus { border-color: var(--coral); }
+  textarea.text-input { min-height: 110px; resize: vertical; font-size: 1.05rem; line-height: 1.6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+  .chip {
+    font-family: inherit; font-size: 0.85rem; font-weight: 700;
+    background: #fff; border: 2px solid var(--line); color: var(--ink-soft);
+    border-radius: 99px; padding: 0.3rem 0.8rem; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--coral); color: var(--coral-dark); }
+
+  .wizard-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; gap: 0.5rem; }
+
+  .summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin-bottom: 1.4rem; }
+  .summary div { background: #fff; border-radius: 14px; padding: 0.6rem 0.9rem; }
+  .summary b { display: block; font-size: 0.75rem; color: var(--ink-soft); }
+  .summary span { font-size: 1.05rem; font-weight: 700; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 3rem 1rem; }
+  .book-anim { width: 120px; height: 90px; margin: 0 auto 1.5rem; position: relative; perspective: 600px; }
+  .book-anim i {
+    position: absolute; left: 50%; top: 0; width: 55px; height: 85px;
+    background: #fff; border: 3px solid var(--coral); border-radius: 4px 10px 10px 4px;
+    transform-origin: left center; animation: flip 1.6s infinite ease-in-out;
+  }
+  .book-anim i:nth-child(2) { animation-delay: 0.3s; background: #fff3ea; }
+  .book-anim i:nth-child(3) { animation-delay: 0.6s; background: #ffe9db; }
+  .book-anim::before { content: ''; position: absolute; left: 5px; top: 0; width: 55px; height: 85px; background: #fff; border: 3px solid var(--coral); border-radius: 10px 4px 4px 10px; }
+  @keyframes flip { 0% { transform: rotateY(0); } 50%, 100% { transform: rotateY(-180deg); } }
+  .loading h2 { font-size: 1.4rem; font-weight: 900; }
+  .loading p { color: var(--ink-soft); min-height: 1.8em; }
+  .error-box { background: #fff0ee; border: 2px solid #ffb4a8; color: #a3392a; border-radius: 16px; padding: 1rem 1.2rem; margin: 1rem auto; max-width: 32em; text-align: left; }
+
+  /* BOOK VIEWER */
+  .book-wrap { max-width: 760px; margin: 0 auto; }
+  .book-toolbar { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-bottom: 1rem; }
+  .book-page {
+    background: var(--paper);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+    touch-action: pan-y;
+  }
+  .book-page .illust { aspect-ratio: 8 / 5; background: #dff1ff; }
+  .book-page .illust svg { display: block; width: 100%; height: 100%; }
+  .book-page .body { padding: 1.4rem 1.8rem 1.6rem; min-height: 8rem; }
+  .book-page .body p {
+    font-size: clamp(1.15rem, 3.2vw, 1.55rem);
+    font-weight: 500;
+    line-height: 2;
+    white-space: pre-line;
+    letter-spacing: 0.04em;
+  }
+  .book-page .body .page-num { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin-top: 0.8rem; }
+  .book-page.turning .page-inner { animation: turn 0.4s ease; }
+  @keyframes turn { from { opacity: 0.2; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
+  .cover-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+    padding: 1.2rem; pointer-events: none;
+  }
+  .cover-title {
+    background: rgba(255, 253, 247, 0.92);
+    border-radius: 18px;
+    padding: 0.7rem 1.5rem;
+    font-size: clamp(1.4rem, 4.5vw, 2.2rem);
+    font-weight: 900;
+    text-align: center;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    max-width: 90%;
+  }
+  .cover-sub { font-size: 0.85rem; color: var(--ink-soft); font-weight: 700; margin-top: 0.4rem; background: rgba(255,253,247,0.85); border-radius: 99px; padding: 0.15rem 0.8rem; }
+
+  .book-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; gap: 0.5rem; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); cursor: pointer; }
+  .dots i.on { background: var(--coral); }
+  .the-end { text-align: center; margin-top: 1rem; font-weight: 700; color: var(--ink-soft); }
+
+  /* SHELF */
+  .shelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+  .shelf-item { background: var(--paper); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .shelf-item .thumb { aspect-ratio: 8 / 5; cursor: pointer; }
+  .shelf-item .thumb svg { display: block; width: 100%; height: 100%; }
+  .shelf-item .meta { padding: 0.7rem 0.9rem; }
+  .shelf-item h3 { font-size: 1rem; line-height: 1.4; }
+  .shelf-item .date { font-size: 0.75rem; color: var(--ink-soft); }
+  .shelf-item .acts { display: flex; gap: 0.3rem; margin-top: 0.5rem; }
+  .empty { text-align: center; color: var(--ink-soft); padding: 2rem; }
+
+  /* PRINT */
+  #print-area { display: none; }
+  @media print {
+    body { background: #fff; }
+    header, main { display: none !important; }
+    #print-area { display: block; }
+    .print-page { page-break-after: always; width: 100%; padding: 8mm; text-align: center; }
+    .print-page:last-child { page-break-after: auto; }
+    .print-page svg { width: 100%; height: auto; border-radius: 12px; }
+    .print-page p { font-size: 20pt; line-height: 1.9; white-space: pre-line; margin-top: 8mm; text-align: left; }
+    .print-page h1 { font-size: 30pt; margin-top: 8mm; }
+    .print-page .pn { font-size: 10pt; color: #888; margin-top: 6mm; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <button class="brand" id="brand-btn" type="button"><span>📖</span>えほんメーカー</button>
+  <div class="header-actions">
+    <button class="btn btn-sm" id="nav-shelf" type="button">🗂 本棚</button>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-illust" id="home-illust"></div>
+      <h1>せかいにひとつだけの<br><em>絵本</em>をつくろう</h1>
+      <p>いくつかの質問に答えるだけ。お子さんの名前や好きなものが出てくる、オリジナルの絵本がすぐにできあがります。</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" id="start-btn" type="button">✨ 絵本をつくる</button>
+        <button class="btn btn-lg" id="home-shelf-btn" type="button">🗂 本棚を見る</button>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="card step"><div class="ico">💬</div><h3>1. 質問にこたえる</h3><p>主人公・年齢・テーマ・舞台などを選びます</p></div>
+      <div class="card step"><div class="ico">🪄</div><h3>2. 絵本ができる</h3><p>お話と挿絵が自動で作られます</p></div>
+      <div class="card step"><div class="ico">🔊</div><h3>3. 読んで・印刷して</h3><p>読み聞かせ音声や印刷にも対応</p></div>
+    </div>
+  </section>
+
+  <!-- WIZARD -->
+  <section class="screen" id="screen-wizard">
+    <div class="progress">
+      <div class="progress-bar"><i id="progress-fill"></i></div>
+      <div class="progress-label" id="progress-label"></div>
+    </div>
+    <div class="card" id="wizard-card"></div>
+  </section>
+
+  <!-- LOADING -->
+  <section class="screen" id="screen-loading">
+    <div class="card loading">
+      <div class="book-anim"><i></i><i></i><i></i></div>
+      <h2 id="loading-title">絵本をつくっています…</h2>
+      <p id="loading-msg"></p>
+      <div id="loading-error"></div>
+    </div>
+  </section>
+
+  <!-- BOOK -->
+  <section class="screen" id="screen-book">
+    <div class="book-wrap">
+      <div class="book-toolbar">
+        <button class="btn btn-sm" id="read-btn" type="button">🔊 よみきかせ</button>
+        <button class="btn btn-sm" id="save-btn" type="button">💾 本棚にしまう</button>
+        <button class="btn btn-sm" id="print-btn" type="button">🖨 印刷 / PDF</button>
+        <button class="btn btn-sm" id="regen-btn" type="button">🔁 同じ条件でもう一冊</button>
+        <button class="btn btn-sm btn-ghost" id="new-btn" type="button">✨ あたらしく作る</button>
+      </div>
+      <div class="book-page" id="book-page"></div>
+      <div class="book-nav">
+        <button class="btn" id="prev-btn" type="button">◀ まえ</button>
+        <div class="dots" id="dots"></div>
+        <button class="btn btn-primary" id="next-btn" type="button">つぎ ▶</button>
+      </div>
+      <p class="the-end" id="the-end" style="display:none">おしまい 🌙</p>
+    </div>
+  </section>
+
+  <!-- SHELF -->
+  <section class="screen" id="screen-shelf">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:1.5rem;font-weight:900">🗂 本棚</h2>
+      <button class="btn btn-primary btn-sm" id="shelf-new-btn" type="button">✨ 絵本をつくる</button>
+    </div>
+    <div id="shelf-grid" class="shelf-grid"></div>
+  </section>
+</main>
+
+<div id="print-area"></div>
+
+<script>
+/* =========================================================
+   語彙（api/ehon.js と共有）
+   ========================================================= */
+const HERO_OPTIONS = [
+  { id: 'child', label: '子ども', ico: '🧒' },
+  { id: 'cat', label: 'ねこ', ico: '🐱' },
+  { id: 'dog', label: 'いぬ', ico: '🐶' },
+  { id: 'rabbit', label: 'うさぎ', ico: '🐰' },
+  { id: 'bear', label: 'くま', ico: '🐻' },
+  { id: 'robot', label: 'ロボット', ico: '🤖' },
+  { id: 'dragon', label: 'ドラゴン', ico: '🐲' },
+  { id: 'penguin', label: 'ペンギン', ico: '🐧' },
+  { id: 'fox', label: 'きつね', ico: '🦊' },
+  { id: 'owl', label: 'ふくろう', ico: '🦉' },
+  { id: 'elephant', label: 'ぞう', ico: '🐘' },
+];
+const AGE_OPTIONS = [
+  { id: '0-2', label: '0〜2さい', ico: '🍼', sub: 'ひらがな・くりかえし' },
+  { id: '3-5', label: '3〜5さい', ico: '🧸', sub: 'みじかい おはなし' },
+  { id: '6-8', label: '6〜8さい', ico: '🎒', sub: 'すこし よみごたえ' },
+];
+const THEME_OPTIONS = [
+  { id: 'adventure', label: 'ぼうけん', ico: '🗺️' },
+  { id: 'friendship', label: 'ともだち', ico: '🤝' },
+  { id: 'bedtime', label: 'おやすみ', ico: '🌙' },
+  { id: 'courage', label: 'ゆうき', ico: '💪' },
+  { id: 'family', label: 'かぞく', ico: '👨‍👩‍👧' },
+  { id: 'magic', label: 'まほう', ico: '🪄' },
+  { id: 'food', label: 'たべもの', ico: '🍙' },
+  { id: 'vehicles', label: 'のりもの', ico: '🚂' },
+];
+const SETTING_OPTIONS = [
+  { id: 'forest', label: 'もり', ico: '🌳' },
+  { id: 'sea', label: 'うみ', ico: '🌊' },
+  { id: 'beach', label: 'すなはま', ico: '🏖️' },
+  { id: 'space', label: 'うちゅう', ico: '🚀' },
+  { id: 'town', label: 'まち', ico: '🏘️' },
+  { id: 'castle', label: 'おしろ', ico: '🏰' },
+  { id: 'snow', label: 'ゆきのくに', ico: '⛄' },
+  { id: 'flowers', label: 'おはなばたけ', ico: '🌸' },
+  { id: 'meadow', label: 'まきば', ico: '🐄' },
+  { id: 'home', label: 'おうち', ico: '🏠' },
+  { id: 'mountain', label: 'やま', ico: '⛰️' },
+  { id: 'cave', label: 'どうくつ', ico: '🕯️' },
+  { id: 'sky', label: 'くものうえ', ico: '☁️' },
+  { id: 'river', label: 'かわ', ico: '🏞️' },
+  { id: 'farm', label: 'のうじょう', ico: '🚜' },
+];
+const PAGE_OPTIONS = [
+  { id: 6, label: '6ページ', ico: '📄', sub: 'さっと よめる' },
+  { id: 8, label: '8ページ', ico: '📄', sub: 'ちょうどいい' },
+  { id: 10, label: '10ページ', ico: '📄', sub: 'たっぷり' },
+  { id: 12, label: '12ページ', ico: '📄', sub: 'ながめ' },
+];
+const EXTRA_CHIPS = ['おにぎり', 'にじ', 'おばあちゃん', 'でんしゃ', 'ちいさなとり', 'ほし', 'ケーキ', 'かさ', 'たからもの', 'おともだちのねこ'];
+
+const labelOf = (list, id) => (list.find((o) => String(o.id) === String(id)) || {}).label || '';
+
+/* =========================================================
+   状態・画面切り替え
+   ========================================================= */
+const state = {
+  step: 0,
+  answers: { name: '', hero: '', age: '', theme: '', setting: '', extras: '', pages: 8 },
+  book: null,
+  bookId: null,
+  page: 0, // 0 = 表紙
+};
+
+const $ = (id) => document.getElementById(id);
+function show(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  stopReading();
+}
+
+/* =========================================================
+   質問ウィザード
+   ========================================================= */
+const QUESTIONS = [
+  {
+    key: 'name', title: '主人公の名前は？', help: 'お子さんの名前や、好きな名前を入れてください',
+    render(card) {
+      card.innerHTML += `
+        <input class="text-input" id="q-name" type="text" maxlength="20" placeholder="例：はなちゃん" value="${esc(state.answers.name)}" autocomplete="off">
+        <div class="chips">${['はなちゃん', 'ゆうくん', 'ももちゃん', 'そらくん', 'りんちゃん'].map((n) => `<button class="chip" type="button" data-name="${n}">${n}</button>`).join('')}</div>`;
+      const input = card.querySelector('#q-name');
+      input.addEventListener('input', () => { state.answers.name = input.value; updateNav(); });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && valid()) next(); });
+      card.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => { input.value = c.dataset.name; state.answers.name = c.dataset.name; updateNav(); input.focus(); }));
+      setTimeout(() => input.focus(), 50);
+    },
+    valid: () => state.answers.name.trim().length > 0 && state.answers.name.trim().length <= 20,
+  },
+  { key: 'hero', title: '主人公はだれ？', help: 'お話の中でずっと活躍するキャラクターです', options: HERO_OPTIONS },
+  { key: 'age', title: 'なんさい向けの絵本？', help: '文字の量やことばのむずかしさが変わります', options: AGE_OPTIONS },
+  { key: 'theme', title: 'どんなお話にする？', help: '絵本のテーマを選んでください', options: THEME_OPTIONS },
+  { key: 'setting', title: 'お話の舞台は？', help: '主人公がぼうけんする場所です', options: SETTING_OPTIONS },
+  {
+    key: 'extras', title: 'お話に出したいものは？', help: '好きなもの・家族・ペットなど、自由に書いてください（なくてもOK）',
+    render(card) {
+      card.innerHTML += `
+        <textarea class="text-input" id="q-extras" maxlength="120" placeholder="例：大好きなおにぎり、おばあちゃん、赤いかさ">${esc(state.answers.extras)}</textarea>
+        <div class="chips">${EXTRA_CHIPS.map((n) => `<button class="chip" type="button" data-word="${n}">＋ ${n}</button>`).join('')}</div>`;
+      const ta = card.querySelector('#q-extras');
+      ta.addEventListener('input', () => { state.answers.extras = ta.value; });
+      card.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => {
+        const cur = ta.value.trim();
+        const add = c.dataset.word;
+        if (cur.includes(add)) return;
+        ta.value = cur ? `${cur}、${add}` : add;
+        if (ta.value.length > 120) ta.value = ta.value.slice(0, 120);
+        state.answers.extras = ta.value;
+      }));
+    },
+    valid: () => (state.answers.extras || '').length <= 120,
+  },
+  { key: 'pages', title: 'ページ数は？', help: '表紙をのぞいたページ数です', options: PAGE_OPTIONS },
+  {
+    key: 'confirm', title: 'この内容で絵本をつくります', help: '直したいところがあれば「まえへ」でもどれます',
+    render(card) {
+      const a = state.answers;
+      card.innerHTML += `<div class="summary">
+        <div><b>主人公</b><span>${esc(a.name)}（${labelOf(HERO_OPTIONS, a.hero)}）</span></div>
+        <div><b>対象年齢</b><span>${labelOf(AGE_OPTIONS, a.age)}</span></div>
+        <div><b>テーマ</b><span>${labelOf(THEME_OPTIONS, a.theme)}</span></div>
+        <div><b>舞台</b><span>${labelOf(SETTING_OPTIONS, a.setting)}</span></div>
+        <div><b>ページ数</b><span>${labelOf(PAGE_OPTIONS, a.pages)}</span></div>
+        <div><b>出したいもの</b><span>${esc(a.extras) || 'とくになし'}</span></div>
+      </div>`;
+    },
+    valid: () => true,
+  },
+];
+
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function renderStep() {
+  const q = QUESTIONS[state.step];
+  const card = $('wizard-card');
+  const total = QUESTIONS.length;
+  $('progress-fill').style.width = `${((state.step + 1) / total) * 100}%`;
+  $('progress-label').textContent = `${state.step + 1} / ${total}`;
+  card.innerHTML = `<h2 class="q-title">${q.title}</h2><p class="q-help">${q.help}</p>`;
+  if (q.options) {
+    const grid = document.createElement('div');
+    grid.className = 'choice-grid';
+    grid.innerHTML = q.options.map((o) => `
+      <button class="choice ${String(state.answers[q.key]) === String(o.id) ? 'selected' : ''}" type="button" data-id="${o.id}">
+        <span class="ico">${o.ico}</span>${o.label}${o.sub ? `<small>${o.sub}</small>` : ''}
+      </button>`).join('');
+    grid.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => {
+      state.answers[q.key] = q.key === 'pages' ? Number(b.dataset.id) : b.dataset.id;
+      grid.querySelectorAll('.choice').forEach((x) => x.classList.toggle('selected', x === b));
+      updateNav();
+      setTimeout(next, 220);
+    }));
+    card.appendChild(grid);
+  } else {
+    q.render(card);
+  }
+  const nav = document.createElement('div');
+  nav.className = 'wizard-nav';
+  const isLast = state.step === total - 1;
+  nav.innerHTML = `
+    <button class="btn btn-ghost" id="w-prev" type="button">${state.step === 0 ? '← やめる' : '← まえへ'}</button>
+    <button class="btn btn-primary ${isLast ? 'btn-lg' : ''}" id="w-next" type="button">${isLast ? '🪄 絵本をつくる！' : 'つぎへ →'}</button>`;
+  card.appendChild(nav);
+  $('w-prev').addEventListener('click', () => { if (state.step === 0) show('screen-home'); else { state.step--; renderStep(); } });
+  $('w-next').addEventListener('click', () => { if (isLast) generate(); else next(); });
+  updateNav();
+}
+function valid() {
+  const q = QUESTIONS[state.step];
+  if (q.valid) return q.valid();
+  return state.answers[q.key] !== '' && state.answers[q.key] != null;
+}
+function updateNav() { const b = $('w-next'); if (b) b.disabled = !valid(); }
+function next() { if (!valid()) return; if (state.step < QUESTIONS.length - 1) { state.step++; renderStep(); } }
+
+function startWizard(keepAnswers = false) {
+  if (!keepAnswers) state.answers = { name: '', hero: '', age: '', theme: '', setting: '', extras: '', pages: 8 };
+  state.step = 0;
+  renderStep();
+  show('screen-wizard');
+}
+
+/* =========================================================
+   生成
+   ========================================================= */
+const LOADING_MSGS = [
+  'おはなしを かんがえています…',
+  'とうじょうじんぶつを あつめています…',
+  'えのぐを ならべています…',
+  'ページを とじています…',
+  'もうすこしで できあがり…',
+];
+let loadingTimer = null;
+
+async function generate() {
+  show('screen-loading');
+  $('loading-title').textContent = '絵本をつくっています…';
+  $('loading-error').innerHTML = '';
+  let i = 0;
+  $('loading-msg').textContent = LOADING_MSGS[0];
+  clearInterval(loadingTimer);
+  loadingTimer = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; $('loading-msg').textContent = LOADING_MSGS[i]; }, 3500);
+
+  try {
+    let book;
+    if (new URLSearchParams(location.search).get('demo') === '1') {
+      await new Promise((r) => setTimeout(r, 1200));
+      book = demoBook();
+    } else {
+      const res = await fetch('/api/ehon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: state.answers }),
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { /* 本文なし */ }
+      if (!res.ok || !data?.book) throw new Error(data?.error || `サーバーエラー（${res.status}）`);
+      book = data.book;
+    }
+    openBook(normalizeBook(book), null);
+  } catch (err) {
+    clearInterval(loadingTimer);
+    $('loading-title').textContent = 'うまくできませんでした';
+    $('loading-msg').textContent = '';
+    $('loading-error').innerHTML = `
+      <div class="error-box">${esc(err.message || '不明なエラー')}</div>
+      <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="retry-btn" type="button">🔁 もう一度ためす</button>
+        <button class="btn" id="back-btn" type="button">← 質問にもどる</button>
+      </div>`;
+    $('retry-btn').addEventListener('click', generate);
+    $('back-btn').addEventListener('click', () => { state.step = QUESTIONS.length - 1; renderStep(); show('screen-wizard'); });
+    return;
+  }
+  clearInterval(loadingTimer);
+}
+
+function normalizeBook(book) {
+  const heroKind = state.answers.hero || 'child';
+  const pages = (book.pages || []).map((p) => {
+    const ill = p.illustration || {};
+    let chars = Array.isArray(ill.characters) ? ill.characters.slice(0, 3) : [];
+    if (!chars.some((c) => c.isHero)) chars.unshift({ kind: heroKind, emotion: 'happy', position: 'center', size: 'medium', isHero: true });
+    return {
+      text: String(p.text || '').trim(),
+      illustration: {
+        background: ill.background || state.answers.setting || 'meadow',
+        time: ill.time || 'day',
+        characters: chars,
+        props: Array.isArray(ill.props) ? ill.props.slice(0, 4) : [],
+      },
+    };
+  });
+  return { title: String(book.title || 'ぼくのえほん').trim(), pages, answers: { ...state.answers } };
+}
+
+/* =========================================================
+   挿絵レンダラー（SVG）
+   ========================================================= */
+const W = 800, H = 500, GROUND = 400;
+const POS_X = { left: 190, center: 400, right: 610 };
+const SIZE_SCALE = { small: 0.72, medium: 0.95, large: 1.2 };
+const SKY = {
+  day: ['#8fd1ff', '#e7f6ff'],
+  sunset: ['#ff9a73', '#ffe3ad'],
+  night: ['#1a2657', '#4b5aa8'],
+};
+const GROUND_COLOR = {
+  forest: '#5fb46a', meadow: '#8fd47f', flowers: '#86cf7c', snow: '#f5f9ff', beach: '#f6df9f',
+  space: '#8c8aa9', town: '#a9d67f', castle: '#86c67e', home: '#dcb07a', mountain: '#7cc07a',
+  cave: '#6e5f52', sky: '#ffffff', river: '#8fd47f', farm: '#c79c62', sea: '#3fa9e8',
+};
+const FUR = {
+  child: '#ffd9b5', adult: '#ffd9b5', cat: '#f6c177', dog: '#d5a26a', rabbit: '#ffffff', bear: '#b3804f',
+  robot: '#aabfd3', dragon: '#7dcf7d', penguin: '#2c2c40', fox: '#f39a4b', owl: '#b98f5e', elephant: '#b8c0d0',
+  bird: '#79c3ff', frog: '#7fd66f', fish: '#ffa25c', mouse: '#cfcfda', fairy: '#ffd9b5',
+};
+const PROP_EMOJI = {
+  tree: '🌳', flower: '🌸', star: '⭐', moon: '🌙', sun: '☀️', cloud: '☁️', rainbow: '🌈', balloon: '🎈', boat: '⛵', rocket: '🚀',
+  car: '🚗', train: '🚂', cake: '🎂', apple: '🍎', gift: '🎁', house: '🏠', bridge: '🌉', treasure: '💎', umbrella: '☂️', book: '📖',
+  ball: '⚽', kite: '🪁', tent: '⛺', campfire: '🔥', mushroom: '🍄', butterfly: '🦋', snowman: '⛄', lantern: '🏮', key: '🔑', map: '🗺️',
+  heart: '💖', music: '🎵', bed: '🛏️', planet: '🪐', shell: '🐚', leaf: '🍃', crown: '👑', wand: '🪄', bicycle: '🚲', airplane: '✈️',
+  icecream: '🍦', onigiri: '🍙', bread: '🍞', teddy: '🧸', bell: '🔔',
+};
+const SKY_PROPS = new Set(['star', 'moon', 'sun', 'cloud', 'rainbow', 'balloon', 'rocket', 'airplane', 'planet', 'kite', 'butterfly', 'music', 'heart', 'bird']);
+
+function rng(seed) { let t = seed + 0x6D2B79F5; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ (t >>> 15), 1 | t); r ^= r + Math.imul(r ^ (r >>> 7), 61 | r); return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+
+function renderIllustration(ill, seed = 1) {
+  const r = rng(seed);
+  const bg = ill.background in GROUND_COLOR ? ill.background : 'meadow';
+  const time = bg === 'space' ? 'night' : (ill.time in SKY ? ill.time : 'day');
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="挿絵">`);
+  parts.push(`<defs>
+    <linearGradient id="sky${seed}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${bg === 'space' ? '#0b1034' : bg === 'cave' ? '#3d3330' : SKY[time][0]}"/>
+      <stop offset="1" stop-color="${bg === 'space' ? '#2b1f60' : bg === 'cave' ? '#6b5a4f' : SKY[time][1]}"/>
+    </linearGradient></defs>`);
+  parts.push(drawBackground(bg, time, r, seed));
+  // 小物（空）
+  const props = (ill.props || []).filter((p) => PROP_EMOJI[p.kind]);
+  props.forEach((p, i) => {
+    if (!SKY_PROPS.has(p.kind)) return;
+    const x = POS_X[p.position] ?? 400;
+    const y = 90 + i * 28 + r() * 30;
+    parts.push(`<text x="${x + (r() - 0.5) * 120}" y="${y}" font-size="54" text-anchor="middle">${PROP_EMOJI[p.kind]}</text>`);
+  });
+  // キャラクター
+  const chars = (ill.characters || []).slice(0, 3);
+  const groups = {};
+  chars.forEach((c) => { (groups[c.position] ||= []).push(c); });
+  const placed = [];
+  Object.entries(groups).forEach(([pos, list]) => {
+    const base = POS_X[pos] ?? 400;
+    list.forEach((c, i) => {
+      const spread = list.length > 1 ? (i - (list.length - 1) / 2) * 120 : 0;
+      placed.push({ c, x: base + spread });
+    });
+  });
+  // 主人公を最後に描いて手前に出す
+  placed.sort((a, b) => (a.c.isHero ? 1 : 0) - (b.c.isHero ? 1 : 0));
+  placed.forEach(({ c, x }) => {
+    const s = SIZE_SCALE[c.size] || 0.95;
+    const floating = ['fish', 'fairy', 'bird'].includes(c.kind) || bg === 'sky';
+    const groundY = bg === 'sea' ? GROUND + 20 : GROUND;
+    parts.push(drawCharacter(c, x, floating ? groundY - 60 : groundY, s));
+  });
+  // 小物（地面）
+  props.forEach((p, i) => {
+    if (SKY_PROPS.has(p.kind)) return;
+    const x = (POS_X[p.position] ?? 400) + (i % 2 === 0 ? -95 : 95) + (r() - 0.5) * 40;
+    parts.push(`<text x="${x}" y="${GROUND + 28 + r() * 40}" font-size="58" text-anchor="middle">${PROP_EMOJI[p.kind]}</text>`);
+  });
+  parts.push('</svg>');
+  return parts.join('');
+}
+
+function drawBackground(bg, time, r, seed) {
+  const o = [];
+  const gc = GROUND_COLOR[bg];
+  o.push(`<rect width="${W}" height="${H}" fill="url(#sky${seed})"/>`);
+  // 天体
+  if (bg !== 'home' && bg !== 'cave') {
+    if (time === 'night' || bg === 'space') {
+      for (let i = 0; i < 28; i++) o.push(`<circle cx="${r() * W}" cy="${r() * 300}" r="${1 + r() * 2.2}" fill="#fff" opacity="${0.5 + r() * 0.5}"/>`);
+      if (bg !== 'space') o.push(`<path d="M690 48 A42 42 0 1 0 690 132 A54 54 0 0 1 690 48 Z" fill="#fff4b0"/>`);
+    } else if (time === 'sunset') {
+      o.push(`<circle cx="600" cy="${GROUND - 30}" r="70" fill="#ffd166" opacity="0.95"/>`);
+    } else {
+      o.push(`<circle cx="690" cy="80" r="44" fill="#ffe66d"/><circle cx="690" cy="80" r="56" fill="#ffe66d" opacity="0.25"/>`);
+    }
+  }
+  const cloud = (x, y, s = 1, op = 0.95) => `<g transform="translate(${x} ${y}) scale(${s})" fill="#fff" opacity="${op}"><ellipse cx="0" cy="0" rx="46" ry="22"/><circle cx="-22" cy="-8" r="20"/><circle cx="8" cy="-16" r="26"/><circle cx="34" cy="-4" r="18"/></g>`;
+  const tree = (x, y, s = 1, col = '#4fa85a') => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-9" y="-40" width="18" height="46" rx="5" fill="#8b5a3c"/><circle cx="0" cy="-70" r="38" fill="${col}"/><circle cx="-26" cy="-50" r="28" fill="${col}"/><circle cx="26" cy="-52" r="28" fill="${col}"/></g>`;
+  const pine = (x, y, s = 1, col = '#3f9a63', snow = false) => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-7" y="-30" width="14" height="36" rx="4" fill="#8b5a3c"/><polygon points="0,-130 -44,-60 44,-60" fill="${col}"/><polygon points="0,-100 -54,-28 54,-28" fill="${col}"/>${snow ? '<polygon points="0,-130 -22,-95 22,-95" fill="#fff" opacity="0.9"/>' : ''}</g>`;
+  const flower = (x, y, col) => `<g transform="translate(${x} ${y})"><line x1="0" y1="0" x2="0" y2="-22" stroke="#4fa85a" stroke-width="3"/><circle cx="0" cy="-28" r="6" fill="${col}"/><circle cx="-7" cy="-25" r="5" fill="${col}"/><circle cx="7" cy="-25" r="5" fill="${col}"/><circle cx="-4" cy="-33" r="5" fill="${col}"/><circle cx="4" cy="-33" r="5" fill="${col}"/><circle cx="0" cy="-28" r="3" fill="#ffe66d"/></g>`;
+  const house = (x, y, s = 1, col = '#ffe0b3', roof = '#e8663f') => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-45" y="-70" width="90" height="70" fill="${col}"/><polygon points="-55,-70 0,-120 55,-70" fill="${roof}"/><rect x="-12" y="-36" width="24" height="36" rx="4" fill="#8b5a3c"/><rect x="18" y="-58" width="18" height="18" fill="${time === 'night' ? '#ffe66d' : '#bde3ff'}"/><rect x="-36" y="-58" width="18" height="18" fill="${time === 'night' ? '#ffe66d' : '#bde3ff'}"/></g>`;
+  const hills = (col, y = GROUND) => `<path d="M0 ${y + 40} Q 120 ${y - 60} 260 ${y + 10} T 520 ${y} T 800 ${y - 30} V ${H} H 0 Z" fill="${col}"/>`;
+  const waves = (col, y, op = 1) => { let d = `M0 ${y}`; for (let x = 0; x <= W; x += 80) d += ` q 20 -14 40 0 t 40 0`; return `<path d="${d} V ${H} H 0 Z" fill="${col}" opacity="${op}"/>`; };
+
+  if (time !== 'night' && !['space', 'home', 'cave'].includes(bg)) {
+    o.push(cloud(150, 80, 0.9), cloud(480, 60, 0.7, 0.8));
+  }
+
+  switch (bg) {
+    case 'forest':
+      o.push(hills('#8fd47f', GROUND - 20));
+      o.push(tree(70, GROUND - 30, 1.1, '#3f9a63'), tree(700, GROUND - 40, 1.25, '#3f9a63'), tree(330, GROUND - 60, 0.7, '#5db36e'), tree(520, GROUND - 55, 0.75, '#5db36e'));
+      o.push(`<rect y="${GROUND}" width="${W}" height="${H - GROUND}" fill="${gc}"/>`);
+      o.push(`<ellipse cx="120" cy="${GROUND + 60}" rx="60" ry="18" fill="#4fa85a"/><ellipse cx="690" cy="${GROUND + 70}" rx="70" ry="20" fill="#4fa85a"/>`);
+      break;
+    case 'meadow':
+      o.push(hills('#a7de92', GROUND - 40), hills(gc, GROUND));
+      o.push(tree(720, GROUND - 40, 0.9));
+      for (let i = 0; i < 8; i++) o.push(flower(40 + r() * 720, GROUND + 40 + r() * 60, ['#ff8fab', '#ffd166', '#fff'][i % 3]));
+      break;
+    case 'flowers':
+      o.push(hills(gc, GROUND - 10));
+      for (let i = 0; i < 24; i++) o.push(flower(20 + r() * 760, GROUND + 10 + r() * 90, ['#ff8fab', '#ffd166', '#ff6b6b', '#cdbcf0', '#fff'][i % 5]));
+      break;
+    case 'snow':
+      o.push(hills('#ffffff', GROUND - 20), hills(gc, GROUND));
+      o.push(pine(80, GROUND - 10, 1, '#3f9a63', true), pine(720, GROUND - 20, 1.1, '#3f9a63', true), pine(300, GROUND - 60, 0.6, '#3f9a63', true));
+      for (let i = 0; i < 40; i++) o.push(`<circle cx="${r() * W}" cy="${r() * H}" r="${2 + r() * 3}" fill="#fff" opacity="0.85"/>`);
+      break;
+    case 'beach':
+      o.push(waves('#4fb3e6', GROUND - 60), waves('#7cc9f0', GROUND - 45, 0.7));
+      o.push(`<path d="M0 ${GROUND} Q 400 ${GROUND - 30} 800 ${GROUND} V ${H} H 0 Z" fill="${gc}"/>`);
+      o.push(`<g transform="translate(700 ${GROUND - 10})"><rect x="-8" y="-120" width="16" height="120" rx="6" fill="#a8743f"/>${[-1, 1].map((d) => `<path d="M0 -120 q ${d * 60} -30 ${d * 90} 10 q -40 -10 -90 -10" fill="#4fa85a"/>`).join('')}<path d="M0 -120 q 0 -60 -40 -70 q 30 20 40 70" fill="#4fa85a"/></g>`);
+      break;
+    case 'sea':
+      o.push(waves('#2f8fd6', GROUND - 80), waves('#3fa9e8', GROUND - 50, 0.9), waves('#6cc1f2', GROUND - 20, 0.85));
+      o.push(`<rect y="${GROUND + 10}" width="${W}" height="${H - GROUND}" fill="#3fa9e8"/>`);
+      o.push(`<g transform="translate(130 ${GROUND - 100})" opacity="0.9"><ellipse cx="0" cy="20" rx="80" ry="24" fill="#f6df9f"/><rect x="-5" y="-60" width="10" height="80" rx="4" fill="#a8743f"/><path d="M0 -60 q 40 -20 70 0 q -30 -5 -70 0" fill="#4fa85a"/><path d="M0 -60 q -40 -20 -70 0 q 30 -5 70 0" fill="#4fa85a"/></g>`);
+      o.push(`<text x="620" y="${GROUND + 70}" font-size="40" opacity="0.9">🐟</text>`);
+      break;
+    case 'river':
+      o.push(hills('#a7de92', GROUND - 30), hills(gc, GROUND - 5));
+      o.push(`<path d="M-20 ${GROUND + 120} C 200 ${GROUND + 20} 500 ${GROUND + 140} 820 ${GROUND + 30} V ${H} H -20 Z" fill="#5fb9ee"/>`);
+      o.push(`<path d="M-20 ${GROUND + 130} C 200 ${GROUND + 40} 500 ${GROUND + 150} 820 ${GROUND + 50}" stroke="#fff" stroke-width="4" fill="none" opacity="0.6"/>`);
+      o.push(tree(90, GROUND - 20, 0.9), tree(700, GROUND - 30, 1));
+      break;
+    case 'space':
+      for (let i = 0; i < 40; i++) o.push(`<circle cx="${r() * W}" cy="${r() * 360}" r="${1 + r() * 2.5}" fill="#fff" opacity="${0.4 + r() * 0.6}"/>`);
+      o.push(`<circle cx="130" cy="110" r="46" fill="#ff9e7a"/><ellipse cx="130" cy="110" rx="80" ry="16" fill="none" stroke="#ffd166" stroke-width="7" transform="rotate(-18 130 110)"/>`);
+      o.push(`<circle cx="640" cy="120" r="28" fill="#7fd6ff"/><circle cx="630" cy="112" r="6" fill="#fff" opacity="0.5"/>`);
+      o.push(`<path d="M0 ${GROUND + 10} Q 200 ${GROUND - 30} 400 ${GROUND + 5} T 800 ${GROUND - 10} V ${H} H 0 Z" fill="${gc}"/>`);
+      o.push(`<ellipse cx="200" cy="${GROUND + 55}" rx="40" ry="12" fill="#6f6d8f"/><ellipse cx="600" cy="${GROUND + 75}" rx="55" ry="15" fill="#6f6d8f"/>`);
+      break;
+    case 'town':
+      o.push(hills('#bfe6aa', GROUND - 60));
+      o.push(house(120, GROUND, 1, '#ffe0b3', '#e8663f'), house(330, GROUND, 0.85, '#dff3ff', '#3f8fd6'), house(560, GROUND, 1.05, '#fff1c9', '#6fbf73'), house(740, GROUND, 0.8, '#ffd9e3', '#c96f9a'));
+      o.push(`<rect y="${GROUND}" width="${W}" height="${H - GROUND}" fill="${gc}"/>`);
+      o.push(`<rect y="${GROUND + 45}" width="${W}" height="40" fill="#b5b9c2"/><line x1="0" y1="${GROUND + 65}" x2="${W}" y2="${GROUND + 65}" stroke="#fff" stroke-width="4" stroke-dasharray="30 22"/>`);
+      break;
+    case 'castle':
+      o.push(hills('#a7de92', GROUND - 40));
+      o.push(`<g transform="translate(560 ${GROUND - 30})" fill="#e9e4f5" stroke="#b9aed9" stroke-width="3">
+        <rect x="-110" y="-120" width="220" height="120" rx="6"/>
+        <rect x="-140" y="-190" width="60" height="190" rx="6"/><rect x="80" y="-190" width="60" height="190" rx="6"/>
+        <rect x="-30" y="-230" width="60" height="230" rx="6"/>
+        <polygon points="-140,-190 -110,-240 -80,-190" fill="#c96f9a"/><polygon points="80,-190 110,-240 140,-190" fill="#c96f9a"/><polygon points="-30,-230 0,-290 30,-230" fill="#c96f9a"/>
+        <rect x="-22" y="-60" width="44" height="60" rx="22" fill="#8b5a3c"/>
+        <rect x="-116" y="-140" width="14" height="22" rx="4" fill="#ffe66d"/><rect x="102" y="-140" width="14" height="22" rx="4" fill="#ffe66d"/>
+      </g><line x1="560" y1="${GROUND - 320}" x2="560" y2="${GROUND - 290}" stroke="#8b5a3c" stroke-width="3"/><polygon points="560,${GROUND - 320} 600,${GROUND - 310} 560,${GROUND - 300}" fill="#ff6b6b"/>`);
+      o.push(hills(gc, GROUND));
+      break;
+    case 'home':
+      o.push(`<rect width="${W}" height="${GROUND}" fill="${time === 'night' ? '#e6d9c8' : '#fff3e0'}"/>`);
+      o.push(`<rect x="60" y="70" width="200" height="180" rx="14" fill="${time === 'night' ? '#1a2657' : time === 'sunset' ? '#ff9a73' : '#8fd1ff'}" stroke="#d9a86c" stroke-width="10"/>`);
+      o.push(`<line x1="160" y1="70" x2="160" y2="250" stroke="#d9a86c" stroke-width="8"/><line x1="60" y1="160" x2="260" y2="160" stroke="#d9a86c" stroke-width="8"/>`);
+      if (time === 'night') o.push(`<circle cx="210" cy="115" r="18" fill="#fff4b0"/>`); else o.push(cloud(200, 120, 0.5));
+      o.push(`<rect x="520" y="140" width="220" height="150" rx="10" fill="#c96f5a"/><rect x="535" y="155" width="90" height="55" rx="6" fill="#fff"/><rect x="635" y="155" width="90" height="55" rx="6" fill="#fff"/><rect x="535" y="220" width="190" height="55" rx="6" fill="#fff"/>`);
+      o.push(`<rect y="${GROUND}" width="${W}" height="${H - GROUND}" fill="${gc}"/>`);
+      o.push(`<ellipse cx="400" cy="${GROUND + 60}" rx="230" ry="45" fill="#f4b6c2" opacity="0.8"/>`);
+      break;
+    case 'mountain':
+      o.push(`<polygon points="-40,${GROUND} 220,${GROUND - 300} 480,${GROUND}" fill="#8aa6b8"/><polygon points="220,${GROUND - 300} 165,${GROUND - 220} 275,${GROUND - 220}" fill="#fff"/>`);
+      o.push(`<polygon points="360,${GROUND} 600,${GROUND - 240} 860,${GROUND}" fill="#9db9c8"/><polygon points="600,${GROUND - 240} 555,${GROUND - 175} 645,${GROUND - 175}" fill="#fff"/>`);
+      o.push(hills(gc, GROUND));
+      o.push(pine(90, GROUND + 10, 0.8), pine(730, GROUND, 0.9));
+      break;
+    case 'cave':
+      o.push(`<path d="M0 0 H ${W} V ${H} H 0 Z" fill="#4a3d36"/>`);
+      o.push(`<ellipse cx="400" cy="${GROUND - 40}" rx="330" ry="300" fill="url(#sky${seed})"/>`);
+      o.push(`<path d="M140 0 q 40 120 -20 200 M660 0 q -40 120 20 200" stroke="#3a2f2a" stroke-width="30" fill="none" stroke-linecap="round"/>`);
+      for (let i = 0; i < 12; i++) o.push(`<circle cx="${r() * W}" cy="${100 + r() * 250}" r="${2 + r() * 3}" fill="#9fd8ff" opacity="0.7"/>`);
+      o.push(`<rect y="${GROUND}" width="${W}" height="${H - GROUND}" fill="${gc}"/>`);
+      o.push(`<text x="160" y="${GROUND - 10}" font-size="52">🕯️</text>`);
+      break;
+    case 'sky':
+      o.push(cloud(90, 200, 1.2, 0.9), cloud(700, 160, 1.1, 0.9));
+      o.push(`<g fill="#fff"><ellipse cx="400" cy="${GROUND + 40}" rx="520" ry="90"/><circle cx="150" cy="${GROUND}" r="70"/><circle cx="330" cy="${GROUND - 20}" r="90"/><circle cx="520" cy="${GROUND - 10}" r="80"/><circle cx="690" cy="${GROUND + 5}" r="70"/></g>`);
+      break;
+    case 'farm':
+      o.push(hills('#a7de92', GROUND - 50));
+      o.push(`<g transform="translate(640 ${GROUND - 20})"><rect x="-90" y="-100" width="180" height="100" fill="#d9534f"/><polygon points="-100,-100 0,-160 100,-100" fill="#a83e3a"/><rect x="-25" y="-60" width="50" height="60" fill="#5a3a22"/><rect x="-20" y="-56" width="40" height="52" fill="#3a2716"/></g>`);
+      o.push(`<rect y="${GROUND}" width="${W}" height="${H - GROUND}" fill="${gc}"/>`);
+      for (let i = 0; i < 5; i++) o.push(`<path d="M0 ${GROUND + 20 + i * 18} Q 400 ${GROUND + 8 + i * 18} 800 ${GROUND + 20 + i * 18}" stroke="#a97f4a" stroke-width="6" fill="none"/>`);
+      o.push(`<g stroke="#8b5a3c" stroke-width="6">${[0, 1, 2, 3].map((i) => `<line x1="${40 + i * 60}" y1="${GROUND - 30}" x2="${40 + i * 60}" y2="${GROUND + 10}"/>`).join('')}<line x1="40" y1="${GROUND - 20}" x2="220" y2="${GROUND - 20}"/><line x1="40" y1="${GROUND}" x2="220" y2="${GROUND}"/></g>`);
+      break;
+    default:
+      o.push(hills(gc, GROUND));
+  }
+  return o.join('');
+}
+
+function drawCharacter(c, x, baseY, s) {
+  const kind = FUR[c.kind] ? c.kind : 'child';
+  const em = c.emotion || 'happy';
+  const fur = FUR[kind];
+  const isHero = !!c.isHero;
+  const o = [];
+  const headR = 46, headY = -118, bodyY = -42;
+  const shirt = isHero ? '#ff7f7f' : '#6fb8ff';
+  const armUp = em === 'excited' || em === 'brave';
+
+  o.push(`<g transform="translate(${x} ${baseY}) scale(${s})">`);
+  o.push(`<ellipse cx="0" cy="6" rx="${58}" ry="10" fill="rgba(0,0,0,0.12)"/>`);
+
+  // 種類ごとの「うしろ」に描くもの
+  if (kind === 'cat' || kind === 'fox' || kind === 'mouse') {
+    o.push(`<path d="M30 -30 q 60 -10 45 -60" stroke="${kind === 'mouse' ? '#a3a3b3' : fur}" stroke-width="${kind === 'mouse' ? 5 : 14}" fill="none" stroke-linecap="round"/>`);
+    if (kind === 'fox') o.push(`<circle cx="75" cy="-92" r="10" fill="#fff"/>`);
+  }
+  if (kind === 'dragon') o.push(`<path d="M-30 -60 q -60 -60 -70 10 q 40 -20 70 10 Z M30 -60 q 60 -60 70 10 q -40 -20 -70 10 Z" fill="#5fb96a" opacity="0.9"/>`);
+  if (kind === 'fairy') o.push(`<ellipse cx="-42" cy="-70" rx="34" ry="20" fill="#cdbcf0" opacity="0.7" transform="rotate(-25 -42 -70)"/><ellipse cx="42" cy="-70" rx="34" ry="20" fill="#cdbcf0" opacity="0.7" transform="rotate(25 42 -70)"/>`);
+  if (kind === 'elephant') o.push(`<circle cx="-52" cy="${headY}" r="28" fill="#a3abbd"/><circle cx="52" cy="${headY}" r="28" fill="#a3abbd"/>`);
+  if (kind === 'mouse') o.push(`<circle cx="-38" cy="${headY - 30}" r="20" fill="${fur}"/><circle cx="38" cy="${headY - 30}" r="20" fill="${fur}"/><circle cx="-38" cy="${headY - 30}" r="11" fill="#f4b6c2"/><circle cx="38" cy="${headY - 30}" r="11" fill="#f4b6c2"/>`);
+  if (kind === 'bear') o.push(`<circle cx="-36" cy="${headY - 34}" r="16" fill="${fur}"/><circle cx="36" cy="${headY - 34}" r="16" fill="${fur}"/><circle cx="-36" cy="${headY - 34}" r="8" fill="#d9a878"/><circle cx="36" cy="${headY - 34}" r="8" fill="#d9a878"/>`);
+  if (kind === 'rabbit') o.push(`<ellipse cx="-20" cy="${headY - 70}" rx="13" ry="42" fill="${fur}" stroke="#e8d9dd" stroke-width="2"/><ellipse cx="20" cy="${headY - 70}" rx="13" ry="42" fill="${fur}" stroke="#e8d9dd" stroke-width="2"/><ellipse cx="-20" cy="${headY - 68}" rx="6" ry="30" fill="#f4b6c2"/><ellipse cx="20" cy="${headY - 68}" rx="6" ry="30" fill="#f4b6c2"/>`);
+  if (kind === 'cat' || kind === 'fox') o.push(`<polygon points="-40,${headY - 20} -30,${headY - 62} -4,${headY - 40}" fill="${fur}"/><polygon points="40,${headY - 20} 30,${headY - 62} 4,${headY - 40}" fill="${fur}"/><polygon points="-33,${headY - 28} -28,${headY - 50} -12,${headY - 38}" fill="#f4b6c2"/><polygon points="33,${headY - 28} 28,${headY - 50} 12,${headY - 38}" fill="#f4b6c2"/>`);
+  if (kind === 'owl') o.push(`<polygon points="-40,${headY - 20} -34,${headY - 58} -6,${headY - 42}" fill="${fur}"/><polygon points="40,${headY - 20} 34,${headY - 58} 6,${headY - 42}" fill="${fur}"/>`);
+  if (kind === 'dragon') o.push(`<polygon points="-30,${headY - 30} -22,${headY - 64} -8,${headY - 40}" fill="#ffd166"/><polygon points="30,${headY - 30} 22,${headY - 64} 8,${headY - 40}" fill="#ffd166"/>`);
+  if (kind === 'robot') o.push(`<line x1="0" y1="${headY - 44}" x2="0" y2="${headY - 66}" stroke="#7d93a8" stroke-width="5"/><circle cx="0" cy="${headY - 70}" r="7" fill="#ff6b6b"/>`);
+  if (kind === 'frog') o.push(`<circle cx="-24" cy="${headY - 36}" r="15" fill="${fur}"/><circle cx="24" cy="${headY - 36}" r="15" fill="${fur}"/><circle cx="-24" cy="${headY - 36}" r="8" fill="#fff"/><circle cx="24" cy="${headY - 36}" r="8" fill="#fff"/><circle cx="-24" cy="${headY - 36}" r="4" fill="#333"/><circle cx="24" cy="${headY - 36}" r="4" fill="#333"/>`);
+
+  if (kind === 'fish') {
+    o.push(`<polygon points="40,-60 85,-90 85,-30" fill="${fur}"/><ellipse cx="0" cy="-60" rx="60" ry="40" fill="${fur}"/><ellipse cx="-10" cy="-60" rx="30" ry="24" fill="#ffd9b5" opacity="0.8"/><polygon points="-5,-40 15,-10 30,-45" fill="${fur}"/>`);
+    o.push(`<circle cx="-30" cy="-68" r="8" fill="#fff"/><circle cx="-31" cy="-68" r="4" fill="#333"/>`);
+    o.push(mouth(em, -48, -50, 0.6));
+    if (isHero) o.push(`<path d="M-20 -95 l 14 -12 l 8 12 Z" fill="#ff5a5a"/>`);
+    o.push('</g>');
+    return o.join('');
+  }
+
+  // 体
+  if (kind === 'robot') {
+    o.push(`<rect x="-40" y="${bodyY - 40}" width="80" height="86" rx="14" fill="${fur}" stroke="#7d93a8" stroke-width="3"/><circle cx="-14" cy="${bodyY}" r="6" fill="#ff6b6b"/><circle cx="8" cy="${bodyY}" r="6" fill="#ffd166"/><rect x="-24" y="${bodyY + 16}" width="48" height="10" rx="5" fill="#7d93a8"/>`);
+    o.push(`<rect x="-30" y="-2" width="22" height="18" rx="5" fill="#7d93a8"/><rect x="8" y="-2" width="22" height="18" rx="5" fill="#7d93a8"/>`);
+    o.push(`<rect x="-64" y="${armUp ? bodyY - 70 : bodyY - 30}" width="18" height="50" rx="9" fill="${fur}" stroke="#7d93a8" stroke-width="3" transform="rotate(${armUp ? -20 : 10} -55 ${bodyY - 30})"/><rect x="46" y="${armUp ? bodyY - 70 : bodyY - 30}" width="18" height="50" rx="9" fill="${fur}" stroke="#7d93a8" stroke-width="3" transform="rotate(${armUp ? 20 : -10} 55 ${bodyY - 30})"/>`);
+  } else {
+    const bodyCol = (kind === 'child' || kind === 'adult' || kind === 'fairy') ? (kind === 'fairy' ? '#cdbcf0' : shirt) : fur;
+    const tall = kind === 'adult' ? 1.25 : 1;
+    o.push(`<ellipse cx="0" cy="${bodyY - (tall - 1) * 30}" rx="44" ry="${46 * tall}" fill="${bodyCol}"/>`);
+    if (kind === 'penguin') o.push(`<ellipse cx="0" cy="${bodyY + 4}" rx="28" ry="36" fill="#fff"/>`);
+    if (kind === 'dragon' || kind === 'frog') o.push(`<ellipse cx="0" cy="${bodyY + 6}" rx="26" ry="30" fill="#c8f0a8"/>`);
+    if (kind === 'owl') o.push(`<ellipse cx="0" cy="${bodyY + 6}" rx="26" ry="30" fill="#e9d2a6"/>`);
+    if (kind === 'fox' || kind === 'cat' || kind === 'dog' || kind === 'bear' || kind === 'rabbit') o.push(`<ellipse cx="0" cy="${bodyY + 8}" rx="24" ry="28" fill="${kind === 'rabbit' ? '#fbeff2' : '#fff'}" opacity="0.8"/>`);
+    // 足
+    const footCol = kind === 'penguin' ? '#ff9f43' : (kind === 'child' || kind === 'adult' || kind === 'fairy') ? '#5a3a22' : fur;
+    o.push(`<ellipse cx="-20" cy="2" rx="16" ry="9" fill="${footCol}"/><ellipse cx="20" cy="2" rx="16" ry="9" fill="${footCol}"/>`);
+    // 腕
+    const armCol = (kind === 'child' || kind === 'adult' || kind === 'fairy') ? '#ffd9b5' : fur;
+    const ay = armUp ? bodyY - 50 : bodyY - 5;
+    o.push(`<ellipse cx="-48" cy="${ay}" rx="11" ry="26" fill="${armCol}" transform="rotate(${armUp ? -40 : 20} -48 ${ay})"/><ellipse cx="48" cy="${ay}" rx="11" ry="26" fill="${armCol}" transform="rotate(${armUp ? 40 : -20} 48 ${ay})"/>`);
+  }
+
+  // 頭
+  if (kind === 'robot') {
+    o.push(`<rect x="-44" y="${headY - 44}" width="88" height="88" rx="18" fill="${fur}" stroke="#7d93a8" stroke-width="3"/>`);
+  } else {
+    o.push(`<circle cx="0" cy="${headY}" r="${headR}" fill="${fur}"/>`);
+  }
+  if (kind === 'penguin') o.push(`<ellipse cx="0" cy="${headY + 8}" rx="32" ry="28" fill="#fff"/>`);
+  if (kind === 'fox') o.push(`<ellipse cx="0" cy="${headY + 16}" rx="30" ry="22" fill="#fff"/>`);
+  if (kind === 'bear' || kind === 'dog') o.push(`<ellipse cx="0" cy="${headY + 16}" rx="22" ry="16" fill="${kind === 'bear' ? '#d9a878' : '#f1d9bb'}"/>`);
+  if (kind === 'dog') o.push(`<ellipse cx="-44" cy="${headY + 6}" rx="14" ry="30" fill="#b0824e"/><ellipse cx="44" cy="${headY + 6}" rx="14" ry="30" fill="#b0824e"/>`);
+  if (kind === 'elephant') o.push(`<path d="M0 ${headY + 14} q 6 40 -16 62 q 24 -4 30 -30" fill="${fur}" stroke="#a3abbd" stroke-width="2"/>`);
+  if (kind === 'child' || kind === 'adult' || kind === 'fairy') {
+    const hair = isHero ? '#5a3a22' : kind === 'adult' ? '#3b2a20' : '#2e2e3a';
+    o.push(`<path d="M-46 ${headY - 4} a 46 46 0 0 1 92 0 q -10 -14 -46 -12 q -36 -2 -46 12 Z" fill="${hair}"/>`);
+    if (kind === 'fairy') o.push(`<text x="52" y="${headY - 50}" font-size="30">✨</text>`);
+  }
+
+  // 顔
+  o.push(face(em, headY, kind));
+
+  // 首もと：主人公は赤いスカーフ
+  if (isHero && kind !== 'robot') o.push(`<path d="M-22 ${bodyY - 44} q 22 16 44 0 l 6 10 q -28 18 -56 0 Z" fill="#ff5a5a"/><path d="M8 ${bodyY - 40} l 10 34 l -18 -6 Z" fill="#ff5a5a"/>`);
+  if (isHero && kind === 'robot') o.push(`<rect x="-30" y="${bodyY - 48}" width="60" height="10" rx="5" fill="#ff5a5a"/>`);
+
+  if (em === 'sleepy') o.push(`<text x="52" y="${headY - 44}" font-size="24" fill="#4a3b32" font-weight="700" stroke="#fff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">z z</text>`);
+  if (em === 'thinking') o.push(`<text x="48" y="${headY - 40}" font-size="30" fill="#4a3b32" font-weight="700" stroke="#fff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">?</text>`);
+  if (em === 'surprised') o.push(`<text x="46" y="${headY - 40}" font-size="30" fill="#e8663f" font-weight="700" stroke="#fff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">!</text>`);
+
+  o.push('</g>');
+  return o.join('');
+}
+
+function face(em, hy, kind) {
+  const o = [];
+  const ex = 17, ey = hy - 4;
+  const big = kind === 'owl';
+  if (big) o.push(`<circle cx="-${ex}" cy="${ey}" r="15" fill="#fff"/><circle cx="${ex}" cy="${ey}" r="15" fill="#fff"/>`);
+  switch (em) {
+    case 'sleepy':
+      o.push(`<path d="M-${ex + 8} ${ey} q 8 8 16 0 M${ex - 8} ${ey} q 8 8 16 0" stroke="#333" stroke-width="3.5" fill="none" stroke-linecap="round"/>`);
+      break;
+    case 'surprised':
+      o.push(`<circle cx="-${ex}" cy="${ey}" r="9" fill="#fff" stroke="#333" stroke-width="2"/><circle cx="${ex}" cy="${ey}" r="9" fill="#fff" stroke="#333" stroke-width="2"/><circle cx="-${ex}" cy="${ey}" r="4" fill="#333"/><circle cx="${ex}" cy="${ey}" r="4" fill="#333"/>`);
+      break;
+    case 'thinking':
+      o.push(`<circle cx="-${ex - 3}" cy="${ey - 3}" r="5" fill="#333"/><circle cx="${ex + 3}" cy="${ey - 3}" r="5" fill="#333"/>`);
+      break;
+    case 'excited':
+      o.push(`<path d="M-${ex + 8} ${ey + 2} q 8 -10 16 0 M${ex - 8} ${ey + 2} q 8 -10 16 0" stroke="#333" stroke-width="3.5" fill="none" stroke-linecap="round"/>`);
+      break;
+    default:
+      o.push(`<circle cx="-${ex}" cy="${ey}" r="${big ? 6 : 5}" fill="#333"/><circle cx="${ex}" cy="${ey}" r="${big ? 6 : 5}" fill="#333"/>`);
+      o.push(`<circle cx="-${ex - 2}" cy="${ey - 2}" r="1.6" fill="#fff"/><circle cx="${ex + 2}" cy="${ey - 2}" r="1.6" fill="#fff"/>`);
+  }
+  if (em === 'sad') {
+    o.push(`<path d="M-${ex + 8} ${ey - 12} l 14 5 M${ex + 8} ${ey - 12} l -14 5" stroke="#333" stroke-width="3" stroke-linecap="round"/>`);
+    o.push(`<path d="M-${ex + 4} ${ey + 8} q -4 10 0 14 q 4 -4 0 -14" fill="#79c3ff"/>`);
+  }
+  if (em === 'brave') o.push(`<path d="M-${ex + 8} ${ey - 16} l 14 6 M${ex + 8} ${ey - 16} l -14 6" stroke="#333" stroke-width="3" stroke-linecap="round"/>`);
+  // ほっぺ
+  if (em !== 'sad') o.push(`<circle cx="-30" cy="${hy + 12}" r="7" fill="#ff9aa2" opacity="0.6"/><circle cx="30" cy="${hy + 12}" r="7" fill="#ff9aa2" opacity="0.6"/>`);
+  // 鼻・くちばし
+  if (kind === 'cat' || kind === 'dog' || kind === 'bear' || kind === 'fox' || kind === 'rabbit' || kind === 'mouse') o.push(`<ellipse cx="0" cy="${hy + 10}" rx="${kind === 'dog' || kind === 'bear' ? 7 : 4}" ry="${kind === 'dog' || kind === 'bear' ? 5 : 3}" fill="${kind === 'rabbit' || kind === 'mouse' ? '#f48fb1' : '#333'}"/>`);
+  if (kind === 'penguin' || kind === 'bird' || kind === 'owl') o.push(`<polygon points="-8,${hy + 8} 8,${hy + 8} 0,${hy + 20}" fill="#ff9f43"/>`);
+  if (kind === 'cat') o.push(`<path d="M-30 ${hy + 8} h -22 M-30 ${hy + 14} h -22 M30 ${hy + 8} h 22 M30 ${hy + 14} h 22" stroke="#333" stroke-width="2"/>`);
+  if (!(kind === 'penguin' || kind === 'bird' || kind === 'owl')) o.push(mouth(em, 0, hy + 20, 1));
+  return o.join('');
+}
+
+function mouth(em, x, y, s) {
+  switch (em) {
+    case 'sad': return `<path d="M${x - 10 * s} ${y + 6 * s} q ${10 * s} -${10 * s} ${20 * s} 0" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    case 'surprised': return `<ellipse cx="${x}" cy="${y}" rx="${7 * s}" ry="${9 * s}" fill="#c0392b"/>`;
+    case 'sleepy': return `<circle cx="${x}" cy="${y}" r="${4 * s}" fill="#c0392b"/>`;
+    case 'thinking': return `<path d="M${x - 8 * s} ${y} q 4 -4 8 0 t 8 0" stroke="#333" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    case 'excited': return `<path d="M${x - 14 * s} ${y - 4 * s} q ${14 * s} ${22 * s} ${28 * s} 0 Z" fill="#c0392b"/><path d="M${x - 7 * s} ${y + 6 * s} q ${7 * s} 6 ${14 * s} 0" fill="#ff8a80"/>`;
+    case 'brave': return `<path d="M${x - 10 * s} ${y} q ${10 * s} ${6 * s} ${20 * s} 0" stroke="#333" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+    default: return `<path d="M${x - 12 * s} ${y - 2 * s} q ${12 * s} ${14 * s} ${24 * s} 0" stroke="#333" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+  }
+}
+
+/* =========================================================
+   絵本ビューア
+   ========================================================= */
+function openBook(book, id) {
+  state.book = book;
+  state.bookId = id;
+  state.page = 0;
+  renderPage(false);
+  show('screen-book');
+  $('save-btn').textContent = id ? '✅ 本棚にあります' : '💾 本棚にしまう';
+  $('save-btn').disabled = !!id;
+}
+
+function coverIllustration(book) {
+  const first = book.pages[0]?.illustration || {};
+  const heroKind = book.answers?.hero || 'child';
+  return {
+    background: book.answers?.setting || first.background || 'meadow',
+    time: first.time || 'day',
+    characters: [{ kind: heroKind, emotion: 'excited', position: 'center', size: 'large', isHero: true }],
+    props: (first.props || []).slice(0, 2),
+  };
+}
+
+function renderPage(animate = true) {
+  const book = state.book;
+  const total = book.pages.length + 1;
+  const el = $('book-page');
+  let html;
+  if (state.page === 0) {
+    html = `<div class="page-inner"><div class="illust">${renderIllustration(coverIllustration(book), 999)}</div>
+      <div class="cover-overlay"><div class="cover-title">${esc(book.title)}</div><div class="cover-sub">${esc(book.answers?.name || '')}のえほん</div></div></div>`;
+  } else {
+    const p = book.pages[state.page - 1];
+    html = `<div class="page-inner"><div class="illust">${renderIllustration(p.illustration, state.page)}</div>
+      <div class="body"><p>${esc(p.text)}</p><div class="page-num">${state.page} / ${book.pages.length}</div></div></div>`;
+  }
+  el.innerHTML = html;
+  if (animate) { el.classList.remove('turning'); void el.offsetWidth; el.classList.add('turning'); }
+  $('prev-btn').disabled = state.page === 0;
+  $('next-btn').disabled = state.page === total - 1;
+  $('the-end').style.display = state.page === total - 1 ? 'block' : 'none';
+  $('dots').innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i === state.page ? 'on' : ''}" data-i="${i}" title="${i === 0 ? '表紙' : i + 'ページ'}"></i>`).join('');
+  $('dots').querySelectorAll('i').forEach((d) => d.addEventListener('click', () => goTo(Number(d.dataset.i))));
+}
+function goTo(i) {
+  const total = state.book.pages.length + 1;
+  if (i < 0 || i >= total || i === state.page) return;
+  state.page = i;
+  if (!reading.active) stopReading();
+  renderPage(true);
+}
+
+/* --- 読み聞かせ（Web Speech API） --- */
+const reading = { active: false, utter: null };
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  return voices.find((v) => v.lang === 'ja-JP' && /Kyoko|O-Ren|Nanami|Google 日本語|Haruka|Ayumi/i.test(v.name))
+    || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('ja'))
+    || null;
+}
+function readCurrent() {
+  if (!('speechSynthesis' in window)) { alert('このブラウザは読み上げに対応していません。'); return; }
+  const book = state.book;
+  const text = state.page === 0 ? `${book.title}。${book.answers?.name || ''}のえほん。` : book.pages[state.page - 1].text;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/\n+/g, '。'));
+  u.lang = 'ja-JP';
+  u.rate = 0.85;
+  u.pitch = 1.15;
+  const v = pickVoice();
+  if (v) u.voice = v;
+  u.onend = () => {
+    if (!reading.active) return;
+    if (state.page < book.pages.length) {
+      state.page++;
+      renderPage(true);
+      setTimeout(() => { if (reading.active) readCurrent(); }, 500);
+    } else {
+      stopReading();
+    }
+  };
+  u.onerror = () => stopReading();
+  reading.utter = u;
+  speechSynthesis.speak(u);
+}
+function startReading() {
+  reading.active = true;
+  $('read-btn').textContent = '⏹ とめる';
+  $('read-btn').classList.add('is-on');
+  readCurrent();
+}
+function stopReading() {
+  reading.active = false;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const b = $('read-btn');
+  if (b) { b.textContent = '🔊 よみきかせ'; b.classList.remove('is-on'); }
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+
+/* --- 印刷 --- */
+function printBook() {
+  const book = state.book;
+  const area = $('print-area');
+  area.innerHTML = `<div class="print-page">${renderIllustration(coverIllustration(book), 999)}<h1>${esc(book.title)}</h1><p style="text-align:center">${esc(book.answers?.name || '')}のえほん</p></div>`
+    + book.pages.map((p, i) => `<div class="print-page">${renderIllustration(p.illustration, i + 1)}<p>${esc(p.text)}</p><div class="pn">${i + 1} / ${book.pages.length}</div></div>`).join('');
+  window.print();
+}
+
+/* --- 本棚（localStorage） --- */
+const STORE_KEY = 'ehon:books';
+function loadShelf() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch (e) { return []; } }
+function saveShelf(list) { try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); return true; } catch (e) { return false; } }
+function saveCurrent() {
+  const list = loadShelf();
+  const id = `b${Date.now()}`;
+  list.unshift({ id, createdAt: new Date().toISOString(), book: state.book });
+  if (!saveShelf(list)) { alert('保存できませんでした。ブラウザの保存領域がいっぱいかもしれません。'); return; }
+  state.bookId = id;
+  $('save-btn').textContent = '✅ 本棚にしまいました';
+  $('save-btn').disabled = true;
+}
+function renderShelf() {
+  const list = loadShelf();
+  const grid = $('shelf-grid');
+  if (!list.length) { grid.innerHTML = '<div class="empty card">まだ絵本がありません。<br>「絵本をつくる」から最初の一冊を作ってみましょう。</div>'; return; }
+  grid.innerHTML = list.map((item) => `
+    <div class="shelf-item" data-id="${item.id}">
+      <div class="thumb" data-open="${item.id}">${renderIllustration(coverIllustration(item.book), 999)}</div>
+      <div class="meta">
+        <h3>${esc(item.book.title)}</h3>
+        <div class="date">${esc(item.book.answers?.name || '')} ・ ${new Date(item.createdAt).toLocaleDateString('ja-JP')} ・ ${item.book.pages.length}ページ</div>
+        <div class="acts">
+          <button class="btn btn-sm btn-primary" type="button" data-open="${item.id}">📖 ひらく</button>
+          <button class="btn btn-sm btn-ghost" type="button" data-del="${item.id}">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
+    const item = loadShelf().find((x) => x.id === b.dataset.open);
+    if (item) openBook(item.book, item.id);
+  }));
+  grid.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
+    const item = loadShelf().find((x) => x.id === b.dataset.del);
+    if (!item || !confirm(`「${item.book.title}」を本棚から削除しますか？`)) return;
+    saveShelf(loadShelf().filter((x) => x.id !== b.dataset.del));
+    renderShelf();
+  }));
+}
+
+/* =========================================================
+   デモ用サンプル（?demo=1 で API を使わずに動作確認できる）
+   ========================================================= */
+function demoBook() {
+  const name = state.answers.name || 'はなちゃん';
+  const hero = state.answers.hero || 'rabbit';
+  const bg = state.answers.setting || 'forest';
+  const c = (emotion, position = 'center', size = 'medium') => ({ kind: hero, emotion, position, size, isHero: true });
+  return {
+    title: `${name}と ちいさな ほし`,
+    pages: [
+      { text: `あるひ ${name}は\nそらを みあげました。\nきらり。ちいさな ほしが おちてきました。`, illustration: { background: bg, time: 'sunset', characters: [c('surprised')], props: [{ kind: 'star', position: 'right' }] } },
+      { text: `「だいじょうぶ？」\n${name}は ほしを そっと だきしめました。\nほしは ぽかぽか あたたかい。`, illustration: { background: bg, time: 'sunset', characters: [c('happy')], props: [{ kind: 'star', position: 'center' }, { kind: 'flower', position: 'left' }] } },
+      { text: `ほしは いいました。\n「おうちに かえりたいの」\n${name}は かんがえました。うーん、うーん。`, illustration: { background: bg, time: 'night', characters: [c('thinking'), { kind: 'owl', emotion: 'happy', position: 'right', size: 'small', isHero: false }], props: [{ kind: 'moon', position: 'left' }] } },
+      { text: `「よし、いこう！」\n${name}は おおきな やまを のぼりました。\nとことこ、とことこ。`, illustration: { background: 'mountain', time: 'night', characters: [c('brave', 'left')], props: [{ kind: 'star', position: 'right' }, { kind: 'lantern', position: 'left' }] } },
+      { text: `やまの てっぺんで\n${name}は ほしを たかく かかげました。\nほしは ふわり、そらへ かえっていきました。`, illustration: { background: 'sky', time: 'night', characters: [c('excited')], props: [{ kind: 'star', position: 'right' }, { kind: 'star', position: 'left' }] } },
+      { text: `よるの そらに\nひときわ かがやく ほしが ひとつ。\n${name}は にっこり わらって、ぐっすり ねむりました。\nおやすみなさい。`, illustration: { background: 'home', time: 'night', characters: [c('sleepy')], props: [{ kind: 'bed', position: 'right' }, { kind: 'teddy', position: 'left' }] } },
+    ],
+  };
+}
+
+/* =========================================================
+   イベント
+   ========================================================= */
+$('start-btn').addEventListener('click', () => startWizard(false));
+$('shelf-new-btn').addEventListener('click', () => startWizard(false));
+$('brand-btn').addEventListener('click', () => show('screen-home'));
+$('nav-shelf').addEventListener('click', () => { renderShelf(); show('screen-shelf'); });
+$('home-shelf-btn').addEventListener('click', () => { renderShelf(); show('screen-shelf'); });
+$('prev-btn').addEventListener('click', () => goTo(state.page - 1));
+$('next-btn').addEventListener('click', () => goTo(state.page + 1));
+$('read-btn').addEventListener('click', () => (reading.active ? stopReading() : startReading()));
+$('save-btn').addEventListener('click', saveCurrent);
+$('print-btn').addEventListener('click', printBook);
+$('regen-btn').addEventListener('click', () => { state.answers = { ...state.book.answers }; generate(); });
+$('new-btn').addEventListener('click', () => startWizard(false));
+
+document.addEventListener('keydown', (e) => {
+  if (!$('screen-book').classList.contains('active')) return;
+  if (e.key === 'ArrowRight') goTo(state.page + 1);
+  if (e.key === 'ArrowLeft') goTo(state.page - 1);
+});
+let touchX = null;
+$('book-page').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+$('book-page').addEventListener('touchend', (e) => {
+  if (touchX == null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  touchX = null;
+  if (Math.abs(dx) > 50) goTo(state.page + (dx < 0 ? 1 : -1));
+});
+
+// トップページの挿絵
+$('home-illust').innerHTML = renderIllustration({
+  background: 'meadow', time: 'day',
+  characters: [
+    { kind: 'child', emotion: 'excited', position: 'center', size: 'medium', isHero: true },
+    { kind: 'rabbit', emotion: 'happy', position: 'left', size: 'small', isHero: false },
+    { kind: 'bear', emotion: 'happy', position: 'right', size: 'small', isHero: false },
+  ],
+  props: [{ kind: 'balloon', position: 'right' }, { kind: 'book', position: 'left' }],
+}, 7);
+
+// ?demo=1 で開いたときはすぐサンプル絵本を表示
+if (new URLSearchParams(location.search).get('demo') === '1') {
+  state.answers = { name: 'はなちゃん', hero: 'rabbit', age: '3-5', theme: 'adventure', setting: 'forest', extras: '', pages: 6 };
+  openBook(normalizeBook(demoBook()), null);
+}
+</script>
+</body>
+</html>
