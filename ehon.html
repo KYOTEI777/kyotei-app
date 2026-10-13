@@ -213,7 +213,8 @@
     touch-action: pan-y;
   }
   .book-page .illust { aspect-ratio: 8 / 5; background: #dff1ff; }
-  .book-page .illust svg { display: block; width: 100%; height: 100%; }
+  .book-page .illust svg, .book-page .illust img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .paint-status { text-align: center; font-size: 0.9rem; font-weight: 700; color: var(--ink-soft); margin: -0.4rem 0 0.8rem; display: none; }
   .book-page .body { padding: 1.4rem 1.8rem 1.6rem; min-height: 8rem; }
   .book-page .body p {
     font-size: clamp(1.15rem, 3.2vw, 1.55rem);
@@ -254,7 +255,7 @@
   .shelf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
   .shelf-item { background: var(--paper); border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
   .shelf-item .thumb { aspect-ratio: 8 / 5; cursor: pointer; }
-  .shelf-item .thumb svg { display: block; width: 100%; height: 100%; }
+  .shelf-item .thumb svg, .shelf-item .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .shelf-item .meta { padding: 0.7rem 0.9rem; }
   .shelf-item h3 { font-size: 1rem; line-height: 1.4; }
   .shelf-item .date { font-size: 0.75rem; color: var(--ink-soft); }
@@ -269,7 +270,7 @@
     #print-area { display: block; }
     .print-page { page-break-after: always; width: 100%; padding: 8mm; text-align: center; }
     .print-page:last-child { page-break-after: auto; }
-    .print-page svg { width: 100%; height: auto; border-radius: 12px; }
+    .print-page svg, .print-page img { width: 100%; height: auto; border-radius: 12px; }
     .print-page p { font-size: 20pt; line-height: 1.9; white-space: pre-line; margin-top: 8mm; text-align: left; }
     .print-page h1 { font-size: 30pt; margin-top: 8mm; }
     .print-page .pn { font-size: 10pt; color: #888; margin-top: 6mm; }
@@ -332,6 +333,7 @@
         <button class="btn btn-sm" id="regen-btn" type="button">🔁 同じ条件でもう一冊</button>
         <button class="btn btn-sm btn-ghost" id="new-btn" type="button">✨ あたらしく作る</button>
       </div>
+      <div class="paint-status" id="paint-status"></div>
       <div class="book-page" id="book-page"></div>
       <div class="book-nav">
         <button class="btn" id="prev-btn" type="button">◀ まえ</button>
@@ -605,6 +607,7 @@ function normalizeBook(book) {
     if (!chars.some((c) => c.isHero)) chars.unshift({ kind: heroKind, emotion: 'happy', position: 'center', size: 'medium', isHero: true });
     return {
       text: String(p.text || '').trim(),
+      scene: String(p.scene || '').trim(),
       illustration: {
         background: ill.background || state.answers.setting || 'meadow',
         time: ill.time || 'day',
@@ -613,7 +616,119 @@ function normalizeBook(book) {
       },
     };
   });
-  return { title: String(book.title || 'ぼくのえほん').trim(), pages, answers: { ...state.answers } };
+  return {
+    title: String(book.title || 'ぼくのえほん').trim(),
+    heroLook: String(book.heroLook || '').trim(),
+    coverScene: String(book.coverScene || '').trim(),
+    pages,
+    images: {}, // 'cover' / 'p1'… に挿絵画像（JPEG の data URI）が入る
+    answers: { ...state.answers },
+  };
+}
+
+/* =========================================================
+   挿絵画像（AI）— 表紙を先に描き、それを見本にして各ページを並行で描く
+   ========================================================= */
+const PAINT_CONCURRENCY = 3;
+const paint = { book: null, total: 0, done: 0, failed: 0, running: false };
+
+const imageKey = (i) => (i === 0 ? 'cover' : `p${i}`);
+
+// 挿絵の HTML。AI画像があればそれを、なければ SVG の挿絵を出す
+function illustHTML(book, i, seed) {
+  const src = book.images?.[imageKey(i)];
+  if (src) return `<img src="${src}" alt="挿絵">`;
+  const ill = i === 0 ? coverIllustration(book) : book.pages[i - 1].illustration;
+  return renderIllustration(ill, seed ?? (i === 0 ? 999 : i));
+}
+
+function canPaint(book) {
+  return !!(book.heroLook && book.coverScene && book.pages.every((p) => p.scene));
+}
+
+// 受け取った画像を小さめの JPEG にして、本棚（localStorage）に入る大きさにする
+function shrinkImage(dataUri, width = 960, quality = 0.8) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const h = Math.round(img.height * (width / img.width));
+      const c = document.createElement('canvas');
+      c.width = width; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, width, h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUri);
+    img.src = dataUri;
+  });
+}
+
+async function requestImage(scene, heroLook, ref) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch('/api/ehon-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene, heroLook, ref }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.image) return shrinkImage(data.image);
+    } catch (e) { /* もう一度ためす */ }
+  }
+  return null;
+}
+
+async function paintBook(book) {
+  if (!canPaint(book)) return;
+  const missing = [0, ...book.pages.map((_, i) => i + 1)].filter((i) => !book.images[imageKey(i)]);
+  if (!missing.length) return;
+  Object.assign(paint, { book, total: missing.length, done: 0, failed: 0, running: true });
+  updatePaintStatus();
+
+  const onPainted = (i, src) => {
+    if (src) { book.images[imageKey(i)] = src; paint.done++; } else { paint.failed++; }
+    if (state.book === book && state.page === i) refreshIllust();
+    updatePaintStatus();
+  };
+
+  // 1) 表紙（＝主人公の見本）
+  let ref = book.images.cover || null;
+  if (missing[0] === 0) {
+    ref = await requestImage(book.coverScene, book.heroLook, null);
+    onPainted(0, ref);
+  }
+  // 2) 各ページを並行で
+  const queue = missing.filter((i) => i !== 0);
+  const worker = async () => {
+    while (queue.length) {
+      const i = queue.shift();
+      onPainted(i, await requestImage(book.pages[i - 1].scene, book.heroLook, ref));
+    }
+  };
+  await Promise.all(Array.from({ length: PAINT_CONCURRENCY }, worker));
+  paint.running = false;
+  updatePaintStatus();
+  if (state.book === book && state.bookId) updateShelfBook(state.bookId, book);
+}
+
+function updatePaintStatus() {
+  const el = $('paint-status');
+  if (!el) return;
+  const mine = paint.book && paint.book === state.book;
+  if (mine && paint.running) {
+    el.textContent = `🎨 絵をかいています… ${paint.done + paint.failed} / ${paint.total}`;
+    el.style.display = 'block';
+  } else if (mine && paint.failed) {
+    el.innerHTML = `${paint.failed}まいの絵が かけませんでした <button class="btn btn-sm" id="repaint-btn" type="button">🔁 もう一度かく</button>`;
+    el.style.display = 'block';
+    $('repaint-btn').addEventListener('click', () => paintBook(state.book));
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function refreshIllust() {
+  const box = $('book-page').querySelector('.illust');
+  if (box) box.innerHTML = illustHTML(state.book, state.page);
 }
 
 /* =========================================================
@@ -981,6 +1096,14 @@ function openBook(book, id) {
   show('screen-book');
   $('save-btn').textContent = id ? '✅ 本棚にあります' : '💾 本棚にしまう';
   $('save-btn').disabled = !!id;
+  updatePaintStatus();
+  if (!id && aiEnabled()) paintBook(book);
+}
+
+// デモ（?demo=1）では API を呼ばない。?demo=1&ai=1 のときだけ挿絵・声を試す
+function aiEnabled() {
+  const q = new URLSearchParams(location.search);
+  return q.get('demo') !== '1' || q.get('ai') === '1';
 }
 
 function coverIllustration(book) {
@@ -1000,11 +1123,11 @@ function renderPage(animate = true) {
   const el = $('book-page');
   let html;
   if (state.page === 0) {
-    html = `<div class="page-inner"><div class="illust">${renderIllustration(coverIllustration(book), 999)}</div>
+    html = `<div class="page-inner"><div class="illust">${illustHTML(book, 0)}</div>
       <div class="cover-overlay"><div class="cover-title">${esc(book.title)}</div><div class="cover-sub">${esc(book.answers?.name || '')}のえほん</div></div></div>`;
   } else {
     const p = book.pages[state.page - 1];
-    html = `<div class="page-inner"><div class="illust">${renderIllustration(p.illustration, state.page)}</div>
+    html = `<div class="page-inner"><div class="illust">${illustHTML(book, state.page)}</div>
       <div class="body"><p>${esc(p.text)}</p><div class="page-num">${state.page} / ${book.pages.length}</div></div></div>`;
   }
   el.innerHTML = html;
@@ -1023,18 +1146,61 @@ function goTo(i) {
   renderPage(true);
 }
 
-/* --- 読み聞かせ（Web Speech API） --- */
-const reading = { active: false, utter: null };
+/* --- 読み聞かせ（AIの声。使えないときはブラウザの読み上げ） --- */
+const reading = { active: false, utter: null, audio: null };
+// 無音の短い音声。最初のタップの中で一度鳴らして、iPhone などでも後から音を出せるようにする
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+const voiceCache = new Map();
+function pageSpeech(book, i) {
+  return i === 0 ? `${book.title}。${book.answers?.name || ''}のえほん。` : book.pages[i - 1].text;
+}
+function fetchVoice(text) {
+  if (!voiceCache.has(text)) {
+    voiceCache.set(text, fetch('/api/ehon-voice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.url || null).catch(() => null));
+  }
+  return voiceCache.get(text).then((url) => { if (!url) voiceCache.delete(text); return url; });
+}
 function pickVoice() {
   const voices = speechSynthesis.getVoices();
   return voices.find((v) => v.lang === 'ja-JP' && /Kyoko|O-Ren|Nanami|Google 日本語|Haruka|Ayumi/i.test(v.name))
     || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('ja'))
     || null;
 }
-function readCurrent() {
-  if (!('speechSynthesis' in window)) { alert('このブラウザは読み上げに対応していません。'); return; }
+function readNext(book) {
+  if (!reading.active || state.book !== book) return;
+  if (state.page < book.pages.length) {
+    state.page++;
+    renderPage(true);
+    setTimeout(() => { if (reading.active) readCurrent(); }, 500);
+  } else {
+    stopReading();
+  }
+}
+async function readCurrent() {
   const book = state.book;
-  const text = state.page === 0 ? `${book.title}。${book.answers?.name || ''}のえほん。` : book.pages[state.page - 1].text;
+  const page = state.page;
+  const text = pageSpeech(book, page);
+  if (aiEnabled()) {
+    const url = await fetchVoice(text);
+    if (!reading.active || state.book !== book || state.page !== page) return;
+    if (url) {
+      if (page < book.pages.length) fetchVoice(pageSpeech(book, page + 1)); // 次のページを先に用意
+      const audio = reading.audio;
+      audio.onended = () => readNext(book);
+      audio.onerror = () => speakBrowser(text, book);
+      audio.src = url;
+      audio.play().catch(() => speakBrowser(text, book));
+      return;
+    }
+  }
+  speakBrowser(text, book);
+}
+function speakBrowser(text, book) {
+  if (!('speechSynthesis' in window)) { alert('このブラウザは読み上げに対応していません。'); stopReading(); return; }
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text.replace(/\n+/g, '。'));
   u.lang = 'ja-JP';
@@ -1042,28 +1208,23 @@ function readCurrent() {
   u.pitch = 1.15;
   const v = pickVoice();
   if (v) u.voice = v;
-  u.onend = () => {
-    if (!reading.active) return;
-    if (state.page < book.pages.length) {
-      state.page++;
-      renderPage(true);
-      setTimeout(() => { if (reading.active) readCurrent(); }, 500);
-    } else {
-      stopReading();
-    }
-  };
+  u.onend = () => readNext(book);
   u.onerror = () => stopReading();
   reading.utter = u;
   speechSynthesis.speak(u);
 }
 function startReading() {
   reading.active = true;
+  if (!reading.audio) reading.audio = new Audio();
+  reading.audio.src = SILENT_WAV;
+  reading.audio.play().catch(() => {});
   $('read-btn').textContent = '⏹ とめる';
   $('read-btn').classList.add('is-on');
   readCurrent();
 }
 function stopReading() {
   reading.active = false;
+  if (reading.audio) { reading.audio.onended = null; reading.audio.onerror = null; reading.audio.pause(); }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   const b = $('read-btn');
   if (b) { b.textContent = '🔊 よみきかせ'; b.classList.remove('is-on'); }
@@ -1074,8 +1235,8 @@ if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
 function printBook() {
   const book = state.book;
   const area = $('print-area');
-  area.innerHTML = `<div class="print-page">${renderIllustration(coverIllustration(book), 999)}<h1>${esc(book.title)}</h1><p style="text-align:center">${esc(book.answers?.name || '')}のえほん</p></div>`
-    + book.pages.map((p, i) => `<div class="print-page">${renderIllustration(p.illustration, i + 1)}<p>${esc(p.text)}</p><div class="pn">${i + 1} / ${book.pages.length}</div></div>`).join('');
+  area.innerHTML = `<div class="print-page">${illustHTML(book, 0)}<h1>${esc(book.title)}</h1><p style="text-align:center">${esc(book.answers?.name || '')}のえほん</p></div>`
+    + book.pages.map((p, i) => `<div class="print-page">${illustHTML(book, i + 1)}<p>${esc(p.text)}</p><div class="pn">${i + 1} / ${book.pages.length}</div></div>`).join('');
   window.print();
 }
 
@@ -1092,13 +1253,21 @@ function saveCurrent() {
   $('save-btn').textContent = '✅ 本棚にしまいました';
   $('save-btn').disabled = true;
 }
+// 絵が描き終わる前に本棚にしまった絵本へ、あとから絵を足す
+function updateShelfBook(id, book) {
+  const list = loadShelf();
+  const item = list.find((x) => x.id === id);
+  if (!item) return;
+  item.book = book;
+  if (!saveShelf(list)) alert('絵を本棚に保存できませんでした。ブラウザの保存領域がいっぱいかもしれません。');
+}
 function renderShelf() {
   const list = loadShelf();
   const grid = $('shelf-grid');
   if (!list.length) { grid.innerHTML = '<div class="empty card">まだ絵本がありません。<br>「絵本をつくる」から最初の一冊を作ってみましょう。</div>'; return; }
   grid.innerHTML = list.map((item) => `
     <div class="shelf-item" data-id="${item.id}">
-      <div class="thumb" data-open="${item.id}">${renderIllustration(coverIllustration(item.book), 999)}</div>
+      <div class="thumb" data-open="${item.id}">${illustHTML(item.book, 0)}</div>
       <div class="meta">
         <h3>${esc(item.book.title)}</h3>
         <div class="date">${esc(item.book.answers?.name || '')} ・ ${new Date(item.createdAt).toLocaleDateString('ja-JP')} ・ ${item.book.pages.length}ページ</div>
@@ -1130,13 +1299,15 @@ function demoBook() {
   const c = (emotion, position = 'center', size = 'medium') => ({ kind: hero, emotion, position, size, isHero: true });
   return {
     title: `${name}と ちいさな ほし`,
+    heroLook: 'a small white rabbit girl walking on two legs, long ears with pink insides, big round eyes, wearing a red scarf',
+    coverScene: 'the hero stands happily at the edge of a sunny forest path, looking up at the sky, wide view',
     pages: [
-      { text: `あるひ ${name}は\nそらを みあげました。\nきらり。ちいさな ほしが おちてきました。`, illustration: { background: bg, time: 'sunset', characters: [c('surprised')], props: [{ kind: 'star', position: 'right' }] } },
-      { text: `「だいじょうぶ？」\n${name}は ほしを そっと だきしめました。\nほしは ぽかぽか あたたかい。`, illustration: { background: bg, time: 'sunset', characters: [c('happy')], props: [{ kind: 'star', position: 'center' }, { kind: 'flower', position: 'left' }] } },
-      { text: `ほしは いいました。\n「おうちに かえりたいの」\n${name}は かんがえました。うーん、うーん。`, illustration: { background: bg, time: 'night', characters: [c('thinking'), { kind: 'owl', emotion: 'happy', position: 'right', size: 'small', isHero: false }], props: [{ kind: 'moon', position: 'left' }] } },
-      { text: `「よし、いこう！」\n${name}は おおきな やまを のぼりました。\nとことこ、とことこ。`, illustration: { background: 'mountain', time: 'night', characters: [c('brave', 'left')], props: [{ kind: 'star', position: 'right' }, { kind: 'lantern', position: 'left' }] } },
-      { text: `やまの てっぺんで\n${name}は ほしを たかく かかげました。\nほしは ふわり、そらへ かえっていきました。`, illustration: { background: 'sky', time: 'night', characters: [c('excited')], props: [{ kind: 'star', position: 'right' }, { kind: 'star', position: 'left' }] } },
-      { text: `よるの そらに\nひときわ かがやく ほしが ひとつ。\n${name}は にっこり わらって、ぐっすり ねむりました。\nおやすみなさい。`, illustration: { background: 'home', time: 'night', characters: [c('sleepy')], props: [{ kind: 'bed', position: 'right' }, { kind: 'teddy', position: 'left' }] } },
+      { text: `あるひ ${name}は\nそらを みあげました。\nきらり。ちいさな ほしが おちてきました。`, scene: 'In a forest at sunset, the hero looks up in surprise as a tiny glowing star falls from the orange sky', illustration: { background: bg, time: 'sunset', characters: [c('surprised')], props: [{ kind: 'star', position: 'right' }] } },
+      { text: `「だいじょうぶ？」\n${name}は ほしを そっと だきしめました。\nほしは ぽかぽか あたたかい。`, scene: 'Close-up: the hero gently hugs the tiny glowing star to her chest and smiles, warm sunset light', illustration: { background: bg, time: 'sunset', characters: [c('happy')], props: [{ kind: 'star', position: 'center' }, { kind: 'flower', position: 'left' }] } },
+      { text: `ほしは いいました。\n「おうちに かえりたいの」\n${name}は かんがえました。うーん、うーん。`, scene: 'Night in the forest, the hero sits on a tree root thinking with a paw on her chin, a friendly owl on a branch, a full moon', illustration: { background: bg, time: 'night', characters: [c('thinking'), { kind: 'owl', emotion: 'happy', position: 'right', size: 'small', isHero: false }], props: [{ kind: 'moon', position: 'left' }] } },
+      { text: `「よし、いこう！」\n${name}は おおきな やまを のぼりました。\nとことこ、とことこ。`, scene: 'Wide view: the hero climbs a winding mountain path at night carrying a lantern, looking brave, starry sky', illustration: { background: 'mountain', time: 'night', characters: [c('brave', 'left')], props: [{ kind: 'star', position: 'right' }, { kind: 'lantern', position: 'left' }] } },
+      { text: `やまの てっぺんで\n${name}は ほしを たかく かかげました。\nほしは ふわり、そらへ かえっていきました。`, scene: 'On a mountaintop above the clouds at night, the hero raises the star high with both arms as it floats up into the sky', illustration: { background: 'sky', time: 'night', characters: [c('excited')], props: [{ kind: 'star', position: 'right' }, { kind: 'star', position: 'left' }] } },
+      { text: `よるの そらに\nひときわ かがやく ほしが ひとつ。\n${name}は にっこり わらって、ぐっすり ねむりました。\nおやすみなさい。`, scene: 'At home at night, the hero is sleeping in a cozy bed with eyes closed, hugging a teddy bear, a bright star shining through the window', illustration: { background: 'home', time: 'night', characters: [c('sleepy')], props: [{ kind: 'bed', position: 'right' }, { kind: 'teddy', position: 'left' }] } },
     ],
   };
 }
