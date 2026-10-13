@@ -263,11 +263,13 @@
   .empty { text-align: center; color: var(--ink-soft); padding: 2rem; }
 
   /* PRINT */
-  #print-area { display: none; }
+  /* 画面では見えないが描画はしておく（display:none だと印刷時に画像が描かれないことがある） */
+  #print-area { position: fixed; inset: 0; overflow: hidden; opacity: 0; pointer-events: none; z-index: -1; }
+  #print-area:empty { display: none; }
   @media print {
     body { background: #fff; }
     header, main { display: none !important; }
-    #print-area { display: block; }
+    #print-area { position: static; overflow: visible; opacity: 1; z-index: auto; }
     .print-page { page-break-after: always; width: 100%; padding: 8mm; text-align: center; }
     .print-page:last-child { page-break-after: auto; }
     .print-page svg, .print-page img { width: 100%; height: auto; border-radius: 12px; }
@@ -1232,13 +1234,17 @@ function stopReading() {
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
 
 /* --- 印刷 --- */
-function printBook() {
+async function printBook() {
   const book = state.book;
   const area = $('print-area');
   area.innerHTML = `<div class="print-page">${illustHTML(book, 0)}<h1>${esc(book.title)}</h1><p style="text-align:center">${esc(book.answers?.name || '')}のえほん</p></div>`
     + book.pages.map((p, i) => `<div class="print-page">${illustHTML(book, i + 1)}<p>${esc(p.text)}</p><div class="pn">${i + 1} / ${book.pages.length}</div></div>`).join('');
+  // 絵をすべて描ける状態にしてから印刷画面を開く
+  await Promise.all([...area.querySelectorAll('img')].map((img) => img.decode().catch(() => {})));
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   window.print();
 }
+window.addEventListener('afterprint', () => { $('print-area').innerHTML = ''; });
 
 /* --- 本棚（localStorage） --- */
 const STORE_KEY = 'ehon:books';
