@@ -72,6 +72,11 @@ const bookSchema = {
   type: 'object',
   properties: {
     title: { type: 'string', description: '絵本のタイトル（短く、ひらがな中心）' },
+    heroLook: {
+      type: 'string',
+      description: '挿絵画像を描くための、主人公の見た目の説明（英語・1文）。種類・毛や肌の色・服装・目印を具体的に。全ページ共通で使う。',
+    },
+    coverScene: { type: 'string', description: '表紙の挿絵の場面説明（英語）。主人公が舞台にいて、お話の始まりを感じさせる絵。' },
     pages: {
       type: 'array',
       description: '絵本のページ。指定されたページ数ちょうど。',
@@ -79,6 +84,7 @@ const bookSchema = {
         type: 'object',
         properties: {
           text: { type: 'string', description: 'このページの本文。改行で文を区切ってよい。' },
+          scene: { type: 'string', description: 'このページの挿絵画像の場面説明（英語）。' },
           illustration: {
             type: 'object',
             description: 'このページの挿絵の設計図',
@@ -119,12 +125,12 @@ const bookSchema = {
             additionalProperties: false,
           },
         },
-        required: ['text', 'illustration'],
+        required: ['text', 'scene', 'illustration'],
         additionalProperties: false,
       },
     },
   },
-  required: ['title', 'pages'],
+  required: ['title', 'heroLook', 'coverScene', 'pages'],
   additionalProperties: false,
 };
 
@@ -171,6 +177,13 @@ function buildPrompt(a) {
     `- 本文で描かれている場面・時間帯・気持ちと、background / time / emotion を一致させる。`,
     `- 小物（props）は本文に出てくるものを選ぶ。本文にないものを無理に足さない。`,
     `- 表紙は自動で作られるので、pages には本文ページだけを入れる。`,
+    ``,
+    `# 挿絵画像の説明（heroLook / coverScene / scene）のルール`,
+    `- 画像生成AIに渡すので英語で書く。絵の中に文字は入れない（看板・吹き出しも書かない）。`,
+    `- heroLook: 主人公（${LABELS.hero[a.hero]}）の見た目を1文で具体的に（例: "a small orange tabby cat girl walking on two legs, big round eyes, wearing a red scarf"）。名前は入れない。`,
+    `- scene: そのページの本文の場面を1〜2文で。主人公のポーズや動き（走る・すわる・ねむっている など）、表情、ほかの登場人物、場所、時間帯、天気をはっきり書く。主人公は "the hero" と呼ぶ。`,
+    `- 各ページの構図に変化をつける。"close-up"（顔や手元の寄り）・"wide view"（景色の中の小さな主人公）・ふつうの構図を、本文に合わせて使い分ける。同じ構図を続けすぎない。`,
+    `- 背景は毎ページ必ず描く（無地の背景にしない）。`,
   );
   return lines.join('\n');
 }
